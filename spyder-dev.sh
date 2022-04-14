@@ -106,7 +106,7 @@ EOF
     echo "Installing spyder and dependencies..."
     pip install --no-deps -e ${SPYREPO}
 
-    install-subrepos
+    spy-install-subrepos
 )}
 
 # ---- Clone subrepo
