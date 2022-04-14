@@ -36,9 +36,12 @@ spy-install-subrepo () {(
 )}
 
 # ---- Install all subrepos
-spy-install-subrepos () {
+spy-install-subrepos () {(set -e
     echo "Installing subrepos..."
 
+    if [[ -z "${CONDA_DEFAULT_ENV}" && -z "${PYENV_VERSION}" ]]; then
+        error "Will not install subrepos into base environment. Activate an environment first."
+    fi
     if [[ -e "${SPYREPO}/install_subrepos.py" ]]; then
         python -bb -X dev -W error ${SPYREPO}/install_subrepos.py --editable
     else
@@ -46,7 +49,7 @@ spy-install-subrepos () {
             spy-install-subrepo ${dep}
         done
     fi
-}
+)}
 
 # ---- Create conda environment
 spy-conda-env () {(set -e
