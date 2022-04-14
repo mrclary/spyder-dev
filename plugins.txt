@@ -1,0 +1,2 @@
+# External Spyder plugins to install
+spyder-terminal
