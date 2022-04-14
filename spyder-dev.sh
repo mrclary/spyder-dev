@@ -52,31 +52,31 @@ spy-install-subrepos () {(set -e
 )}
 
 # ---- Create conda environment
-spy-conda-env () {(set -e
+spy-dev-env () {(set -e
 THISFUNC=${FUNCNAME}
 help()
 { cat <<EOF
 
-${THISFUNC} [-h] [-v PYVER] ENV
-Create fresh conda environment ENV with Python version PYVER and spyder
-dependents. Dependents are determined from requirements files
+${THISFUNC} [-h] [-v PYVER] [-u] ENV
+Create fresh development environment ENV with Python version PYVER and spyder
+dependents. Dependents are determined from requirements files.
 
   ENV         Environment name
   -h          Display this help
   -v PYVER    Specify the Python version. Default is 3.9.X
+  -u          Create micromamba environment
 
 EOF
 }
 
     PYVER=3.9
+    CMD=conda
 
-    while getopts "hv:" option; do
+    while getopts ":hv:" option; do
         case ${option} in
-            h)
-                help
-                exit;;
-            v)
-                PYVER=${OPTARG};;
+            h) help; exit;;
+            v) PYVER=${OPTARG};;
+            u) CMD=micromamba;;
         esac
     done
     shift $((${OPTIND} - 1))
@@ -90,15 +90,15 @@ EOF
     shell-init
     deactivate-env
 
-    echo "Building conda '${ENV}' environment..."
-    [[ "${OSTYPE}" == "darwin"* ]] && PYAPP=python.app
-    conda create -n ${ENV} -q -y -c conda-forge python=${PYVER} ${PYAPP} \
-        --file ${SPYREPO}/requirements/conda.txt \
-        --file ${SPYREPO}/requirements/tests.txt \
-        --file ${DEVROOT}/spyder-dev/plugins.txt
+    echo "Building ${CMD} '${ENV}' environment..."
+    [[ "${OSTYPE}" == "darwin"* ]] && SPEC=("python.app") || SPEC=()
+    SPEC+=("--file" "${SPYREPO}/requirements/conda.txt")
+    SPEC+=("--file" "${SPYREPO}/requirements/tests.txt")
+    SPEC+=("--file" "${DEVROOT}/spyder-dev/plugins.txt")
+    ${CMD} create -n ${ENV} -q -y -c conda-forge python=${PYVER} ${SPEC[@]}
 
     echo "Activating ${ENV}..."
-    conda activate ${ENV}
+    ${CMD} activate ${ENV}
 
     echo "Installing spyder and dependencies..."
     pip install --no-deps -e ${SPYREPO}
@@ -234,14 +234,14 @@ EOF
 
     echo -e "\nInstalling build dependencies and extras...\n"
     INSTALLDIR=${SPYREPO}/installers/macOS
-    REQFILES=()
+    SPEC=()
     for f in $(ls ${INSTALLDIR}); do
-        [[ "$f" = req-* ]] && REQFILES+=("-r" "${INSTALLDIR}/$f") || true
+        [[ "$f" = req-* ]] && SPEC+=("-r" "${INSTALLDIR}/$f") || true
     done
 
     # python -m pip install -e ../py2app
 
-    python -m pip install ${REQFILES[@]} -e ${SPYREPO}
+    python -m pip install ${SPEC[@]} -e ${SPYREPO}
 
     spy-install-subrepos
 )}
