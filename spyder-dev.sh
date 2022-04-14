@@ -209,7 +209,7 @@ EOF
         export PYTHON_CONFIGURE_OPTS="--enable-framework --with-tcltk-includes=-I${TKPREFIX}/include --with-tcltk-libs='-L${TKPREFIX}/lib -ltcl8.6 -ltk8.6'"
         pyenv install ${PYVER}
     else
-        echo -e "Python $"PYVER" already installed."
+        echo -e "Python "${PYVER}" already installed."
     fi
 
     deactivate-env
