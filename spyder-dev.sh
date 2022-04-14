@@ -1,7 +1,7 @@
-# Command-line tools for developing Spyder
+# Command-line tools for managing Spyder development environments
 
 # ---- Path variables
-DEVROOT=$(cd `dirname ${BASH_SOURCE}`/../ 2> /dev/null && pwd -P)
+DEVROOT=$(cd $(dirname ${BASH_SOURCE})/../ 2> /dev/null && pwd -P)
 SPYREPO=${DEVROOT}/spyder
 EXTDEPS=${SPYREPO}/external-deps
 
@@ -31,7 +31,7 @@ deactivate-env () {
 
 # ---- Install a subrepo
 spy-install-subrepo () {(
-    [[ "$1" == "python-lsp-server" ]] && export SETUPTOOLS_SCM_PRETEND_VERSION=`python ${SPYREPO}/pylsp_utils.py`
+    [[ "$1" == "python-lsp-server" ]] && export SETUPTOOLS_SCM_PRETEND_VERSION=$(python ${SPYREPO}/pylsp_utils.py)
     python -m pip install --no-deps -e ${EXTDEPS}/$1
 )}
 
