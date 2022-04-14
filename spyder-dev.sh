@@ -40,7 +40,7 @@ spy-install-subrepos () {
     echo "Installing subrepos..."
 
     if [[ -e "${SPYREPO}/install_subrepos.py" ]]; then
-        python -bb -X dev -W error ${SPYREPO}/install_subrepos.py --editable --overwrite-standard
+        python -bb -X dev -W error ${SPYREPO}/install_subrepos.py --editable
     else
         for dep in $(ls ${EXTDEPS}); do
             spy-install-subrepo ${dep}
