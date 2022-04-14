@@ -10,20 +10,23 @@ error () {
     [[ -n "$1" ]] && (echo $1; exit 1)
 }
 
+# ---- Shell inits
+shell-init () {
+    [[ -n "${CONDA_EXE}" ]] && eval "$(${CONDA_EXE} shell.bash hook)"
+    [[ -n "${MAMBA_EXE}" ]] && eval "$(${MAMBA_EXE} shell hook)"
+    [[ -n "${PYENV_ROOT}" ]] && eval "$(pyenv init -)"
+    [[ -n "${PYENV_VIRTUALENV_INIT}" ]] && eval "$(pyenv virtualenv-init -)"
+}
+
 # ---- Deactivate Python environments
 deactivate-env () {
     echo "Deactivating virtual environments..."
 
-    eval "$(conda shell.bash hook)"
-    while [[ ${CONDA_SHLVL} != 0 ]]; do
-        conda deactivate
+    while [[ -n ${CONDA_SHLVL} && ${CONDA_SHLVL} != 0 ]]; do
+        conda deactivate || micromamba deactivate || true
     done
 
-    if [[ ${OSTYPE} == "darwin"* ]]; then
-        eval "$(pyenv init -)"
-        eval "$(pyenv virtualenv-init -)"
-        [[ -n "${PYENV_ACTIVATE_SHELL}" ]] && pyenv deactivate || true
-    fi
+    [[ -n "${PYENV_VERSION}" ]] && pyenv deactivate || true
 }
 
 # ---- Install a subrepo
@@ -81,6 +84,7 @@ EOF
         error "Please provide environment name"
     fi
 
+    shell-init
     deactivate-env
 
     echo "Removing conda '${ENV}' environment..."
@@ -212,6 +216,7 @@ EOF
         echo -e "Python "${PYVER}" already installed."
     fi
 
+    shell-init
     deactivate-env
 
     if [[ -n `pyenv versions | grep ${ENV}` ]]; then
