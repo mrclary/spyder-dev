@@ -90,9 +90,6 @@ EOF
     shell-init
     deactivate-env
 
-    echo "Removing conda '${ENV}' environment..."
-    conda env remove -q -y -n ${ENV}
-
     echo "Building conda '${ENV}' environment..."
     [[ "${OSTYPE}" == "darwin"* ]] && PYAPP=python.app
     conda create -n ${ENV} -q -y -c conda-forge python=${PYVER} ${PYAPP} \
