@@ -12,10 +12,28 @@ error () {
 
 # ---- Shell inits
 shell-init () {
-    [[ -n "${CONDA_EXE}" ]] && eval "$(${CONDA_EXE} shell.bash hook)"
-    [[ -n "${MAMBA_EXE}" ]] && eval "$(${MAMBA_EXE} shell hook)"
-    [[ -n "${PYENV_ROOT}" ]] && eval "$(pyenv init -)"
-    [[ -n "${PYENV_VIRTUALENV_INIT}" ]] && eval "$(pyenv virtualenv-init -)"
+    echo "Initializing $1..."
+    case $1 in
+        (pyenv)
+            if [[ -n "${PYENV_ROOT}" && -n "${PYENV_VIRTUALENV_INIT}" ]]; then
+                eval "$(pyenv init -)"
+                eval "$(pyenv virtualenv-init -)"
+            else
+                error "No PYENV_ROOT or PYENV_VIRTUALENV_INIT"
+            fi;;
+        (umamba|micromamba)
+            if [[ -n "${MAMBA_EXE}" ]]; then
+                eval "$(${MAMBA_EXE} shell hook)"
+            else
+                error "No MAMBA_EXE, falling back to conda"
+            fi;;
+        (conda)
+            if [[ -n "${CONDA_EXE}" ]]; then
+                eval "$(${CONDA_EXE} shell.bash hook)"
+            else
+                error "No CONDA_EXE"
+            fi;;
+    esac
 }
 
 # ---- Deactivate Python environments
