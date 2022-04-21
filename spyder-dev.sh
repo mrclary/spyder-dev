@@ -58,10 +58,10 @@ spy-install-subrepos () {(set -e
     echo "Installing subrepos..."
 
     if [[ -z "${CONDA_DEFAULT_ENV}" && -z "${PYENV_VERSION}" ]]; then
-        error "Will not install subrepos into base environment. Activate an environment first."
+        error "Do not install subrepos into base environment. Activate an environment first."
     fi
-    if [[ -e "${SPYREPO}/install_subrepos.py" ]]; then
-        python -bb -X dev -W error ${SPYREPO}/install_subrepos.py --editable
+    if [[ -e "${SPYREPO}/install_dev_repos.py" ]]; then
+        python -bb -X dev -W error ${SPYREPO}/install_dev_repos.py --no-install spyder
     else
         for dep in $(ls ${EXTDEPS}); do
             spy-install-subrepo ${dep}
