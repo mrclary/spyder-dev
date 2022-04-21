@@ -70,57 +70,95 @@ spy-install-subrepos () {(set -e
 )}
 
 # ---- Create conda environment
-spy-dev-env () {(set -e
+spy-env () {(set -e
 THISFUNC=${FUNCNAME}
 help()
 { cat <<EOF
 
 ${THISFUNC} [-h] [-v PYVER] [-u] ENV
-Create fresh development environment ENV with Python version PYVER and spyder
-dependents. Dependents are determined from requirements files.
+Create spyder environment ENV with Python version PYVER and spyder dependents.
+Dependents are determined from requirements files.
+
+A development type environment installs spyder and core dependencies in develop
+mode using pip's -e flag. If a conda environment, conda-forge channel is used.
 
   ENV         Environment name
   -h          Display this help
-  -v PYVER    Specify the Python version. Default is 3.9.X
-  -u          Create micromamba environment
+  -e          ('conda' | 'umamba' | 'pyenv'). Dev environment interpreter. If
+              environment type is 'build' then this option is ignored and a
+              pyenv virtual environment is created.
+  -t          Environment type. ('build' | 'dev'). Default is 'dev'.
+  -v PYVER    Specify the Python version. Default is 3.10.X
 
 EOF
 }
 
-    PYVER=3.9
-    CMD=conda
+CMD=conda
+PYVER=3.10
 
-    while getopts ":hv:" option; do
+    while getopts ":he:t:v:" option; do
         case ${option} in
-            h) help; exit;;
-            v) PYVER=${OPTARG};;
-            u) CMD=micromamba;;
+            (h) help; exit;;
+            (e) CMD=${OPTARG};;
+            (t) TYPE=${OPTARG};;
+            (v) PYVER=${OPTARG};;
         esac
     done
     shift $((${OPTIND} - 1))
 
     ENV=$1
-
     if [[ -z "${ENV}" ]]; then
         error "Please provide environment name"
     fi
 
-    shell-init
+    [[ "${TYPE}" = "build" ]] && CMD=pyenv || true
+    [[ "${CMD}" = "umamba" ]] && CMD=micromamba || true
+
+    shell-init ${CMD}
     deactivate-env
 
     echo "Building ${CMD} '${ENV}' environment..."
-    [[ "${OSTYPE}" == "darwin"* ]] && SPEC=("python.app") || SPEC=()
-    SPEC+=("--file" "${SPYREPO}/requirements/conda.txt")
-    SPEC+=("--file" "${SPYREPO}/requirements/tests.txt")
-    SPEC+=("--file" "${DEVROOT}/spyder-dev/plugins.txt")
-    ${CMD} create -n ${ENV} -q -y -c conda-forge python=${PYVER} ${SPEC[@]}
+    if [[ "${CMD}" != "pyenv" ]]; then
+        [[ "${OSTYPE}" == "darwin"* ]] && SPEC=("python.app") || SPEC=()
+        SPEC+=("--file" "${SPYREPO}/requirements/conda.txt")
+        SPEC+=("--file" "${SPYREPO}/requirements/tests.txt")
+        SPEC+=("--file" "${DEVROOT}/spyder-dev/plugins.txt")
+        ${CMD} create -n ${ENV} -q -y -c conda-forge python=${PYVER} ${SPEC[@]}
+    else
+        PYVER=$(pyenv install --list | egrep "^\s*3.10[0-9.]" | tail -1)
+        if [[ -z "$(brew list --versions tcl-tk)" ]]; then
+            echo -e "Installing Tcl/Tk...\n"
+            brew install tcl-tk
+        else
+            echo -e "Tcl/Tk already installed."
+        fi
+
+        echo -e "Installing Python ${PYVER}...\n"
+        TKPREFIX=$(brew --prefix tcl-tk)
+        export PYTHON_CONFIGURE_OPTS="--enable-framework --with-tcltk-includes=-I${TKPREFIX}/include --with-tcltk-libs='-L${TKPREFIX}/lib -ltcl8.6 -ltk8.6'"
+        pyenv install --skip-existing ${PYVER}
+        pyenv virtualenv -f ${PYVER} ${ENV}
+    fi
 
     echo "Activating ${ENV}..."
     ${CMD} activate ${ENV}
 
     echo "Installing spyder and dependencies..."
-    pip install --no-deps -e ${SPYREPO}
+    if [[ "${CMD}" = pyenv ]]; then
+        python -m pip install -U pip setuptools wheel
+    fi
 
+    if [[ "${TYPE}" = "build" ]]; then
+        INSTALLDIR=${SPYREPO}/installers/macOS
+        SPEC=()
+        for f in $(ls ${INSTALLDIR}); do
+            [[ "$f" = req-* ]] && SPEC+=("-r" "${INSTALLDIR}/$f") || true
+        done
+    else
+        SPEC=("--no-deps")
+    fi
+
+    python -m pip install ${SPEC[@]} -e ${SPYREPO}
     spy-install-subrepos
 )}
 
@@ -161,7 +199,7 @@ EOF
 
     if [[ "${DEV}" = true ]]; then
         CLONE=${DEVROOT}/${REPO}
-        : ${BRANCH:=`git -C ${CLONE} branch --show-current`}
+        ${BRANCH:=$(git -C ${CLONE} branch --show-current)}
     else
         case ${REPO} in
             python-lsp-server)
@@ -181,85 +219,4 @@ EOF
 
 #     echo "CLONE = ${CLONE}; DEV = ${DEV}; BRANCH = ${BRANCH}; REPO = ${REPO}"
     git -C ${SPYREPO} subrepo clone ${CLONE} external-deps/${REPO} -b ${BRANCH} -f
-)}
-
-# ---- Create build environment
-spy-build-env () {(set -e
-THISFUNC=${FUNCNAME}
-help()
-{ cat <<EOF
-
-${THISFUNC} [-h] [-v PYVER] ENV
-Create fresh pyenv environment ENV with Python version PYVER and install spyder
-dependents. Dependents are determined from the current spyder repo and
-
-  ENV         Environment name
-  -h          Display this help
-  -v PYVER    Specify the Python version. Default is 3.9.9
-
-EOF
-}
-
-    PYVER=3.9.9
-
-    while getopts "hv:" option; do
-        case ${option} in
-            h)
-                help
-                exit;;
-            v)
-                PYVER=${OPTARG};;
-        esac
-    done
-    shift $((${OPTIND} - 1))
-
-    ENV=$1
-
-    if [[ -z "${ENV}" ]]; then
-        error "Please specify environment name."
-    fi
-
-    if [[ -z `brew list --versions tcl-tk` ]]; then
-        echo -e "Installing Tcl/Tk...\n"
-        brew install tcl-tk
-    else
-        echo -e "Tcl/Tk already installed."
-    fi
-    if [[ -z `pyenv versions | grep ${PYVER}` ]]; then
-        echo -e "Installing Python ${PYVER}...\n"
-        TKPREFIX=$(brew --prefix tcl-tk)
-        export PYTHON_CONFIGURE_OPTS="--enable-framework --with-tcltk-includes=-I${TKPREFIX}/include --with-tcltk-libs='-L${TKPREFIX}/lib -ltcl8.6 -ltk8.6'"
-        pyenv install ${PYVER}
-    else
-        echo -e "Python "${PYVER}" already installed."
-    fi
-
-    shell-init
-    deactivate-env
-
-    if [[ -n `pyenv versions | grep ${ENV}` ]]; then
-        echo "Removing pyenv ${ENV} environment..."
-        pyenv uninstall -f ${ENV}
-    fi
-
-    echo "Building pyenv ${ENV} environment..."
-    pyenv virtualenv ${PYVER} ${ENV}
-
-    echo "Activating pyenv ${ENV} environment..."
-    pyenv activate ${ENV}
-
-    python -m pip install -U pip setuptools wheel
-
-    echo -e "\nInstalling build dependencies and extras...\n"
-    INSTALLDIR=${SPYREPO}/installers/macOS
-    SPEC=()
-    for f in $(ls ${INSTALLDIR}); do
-        [[ "$f" = req-* ]] && SPEC+=("-r" "${INSTALLDIR}/$f") || true
-    done
-
-    # python -m pip install -e ../py2app
-
-    python -m pip install ${SPEC[@]} -e ${SPYREPO}
-
-    spy-install-subrepos
 )}
