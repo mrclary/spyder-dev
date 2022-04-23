@@ -125,7 +125,6 @@ PYVER=3.10
         SPEC+=("--file" "${DEVROOT}/spyder-dev/plugins.txt")
         ${CMD} create -n ${ENV} -q -y -c conda-forge python=${PYVER} ${SPEC[@]}
     else
-        PYVER=$(pyenv install --list | egrep "^\s*3.10[0-9.]" | tail -1)
         if [[ -z "$(brew list --versions tcl-tk)" ]]; then
             echo -e "Installing Tcl/Tk...\n"
             brew install tcl-tk
@@ -133,6 +132,7 @@ PYVER=3.10
             echo -e "Tcl/Tk already installed."
         fi
 
+        PYVER=$(pyenv install --list | egrep "^\s*${PYVER}[0-9.]*" | tail -1)
         echo -e "Installing Python ${PYVER}...\n"
         TKPREFIX=$(brew --prefix tcl-tk)
         export PYTHON_CONFIGURE_OPTS="--enable-framework --with-tcltk-includes=-I${TKPREFIX}/include --with-tcltk-libs='-L${TKPREFIX}/lib -ltcl8.6 -ltk8.6'"
