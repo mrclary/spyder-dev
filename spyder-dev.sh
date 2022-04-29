@@ -117,8 +117,8 @@ PYVER=3.10
         error "Please provide environment name"
     fi
 
-    [[ "$TYPE" = "build" ]] && CMD=pyenv || true
     [[ "$CMD" = "umamba" ]] && CMD=micromamba || true
+    [[ "$TYPE" = "build" ]] && CMD=pyenv || true
 
     shell-init $CMD
     deactivate-env
