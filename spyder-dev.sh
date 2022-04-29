@@ -123,6 +123,15 @@ PYVER=3.10
     shell-init $CMD
     deactivate-env
 
+    echo "Updating micromamba..."
+    umamba_url=https://micro.mamba.pm/api/micromamba
+    umamba_exe=$SPYREPO/spyder/bin/micromamba
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        curl -Ls $umamba_url/osx-64/latest | tar -xvj $umamba_exe
+    else
+        wget -qO-$umamba_url/linux-64/latest | tar -xvj $umamba_exe
+    fi
+
     echo "Building $CMD '$ENV' environment..."
     if [[ "$CMD" != "pyenv" ]]; then
         # [[ "$OSTYPE" == "darwin"* ]] && SPEC=("python.app") || SPEC=()
