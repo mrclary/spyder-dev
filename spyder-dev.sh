@@ -49,7 +49,9 @@ deactivate-env () {
 
 # ---- Install a subrepo
 spy-install-subrepo () {(
-    [[ "$1" == "python-lsp-server" ]] && export SETUPTOOLS_SCM_PRETEND_VERSION=$(python $SPYREPO/pylsp_utils.py)
+    if [[ "$1" = "python-lsp-server" && -e $SPYREPO/pylsp_utils.py ]]; then
+        export SETUPTOOLS_SCM_PRETEND_VERSION=$(python $SPYREPO/pylsp_utils.py)
+    fi
     python -m pip install --no-deps -e $EXTDEPS/$1
 )}
 
@@ -123,7 +125,8 @@ PYVER=3.10
 
     echo "Building $CMD '$ENV' environment..."
     if [[ "$CMD" != "pyenv" ]]; then
-        [[ "$OSTYPE" == "darwin"* ]] && SPEC=("python.app") || SPEC=()
+        # [[ "$OSTYPE" == "darwin"* ]] && SPEC=("python.app") || SPEC=()
+        SPEC=()
         SPEC+=("--file" "$SPYREPO/requirements/conda.txt")
         SPEC+=("--file" "$SPYREPO/requirements/tests.txt")
         SPEC+=("--file" "$DEVROOT/spyder-dev/plugins.txt")
@@ -139,7 +142,9 @@ PYVER=3.10
         PYVER=$(pyenv install --list | egrep "^\s*$PYVER[0-9.]*" | tail -1)
         echo -e "Installing Python $PYVER...\n"
         TKPREFIX=$(brew --prefix tcl-tk)
-        export PYTHON_CONFIGURE_OPTS="--enable-framework --with-tcltk-includes=-I$TKPREFIX/include --with-tcltk-libs='-L$TKPREFIX/lib -ltcl8.6 -ltk8.6'"
+        PCO=("--enable-framework" "--with-tcltk-includes=-I$TKPREFIX/include")
+        PCO+=("--with-tcltk-libs='-L$TKPREFIX/lib -ltcl8.6 -ltk8.6'")
+        export PYTHON_CONFIGURE_OPTS="${PCO[@]}"
         pyenv install --skip-existing $PYVER
         pyenv virtualenv -f $PYVER $ENV
     fi
