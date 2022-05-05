@@ -125,12 +125,13 @@ PYVER=3.10
 
     echo "Updating micromamba..."
     umamba_url=https://micro.mamba.pm/api/micromamba
-    umamba_exe=$SPYREPO/spyder/bin/micromamba
+    pushd $SPYREPO/spyder
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        curl -Ls $umamba_url/osx-64/latest | tar -xvj $umamba_exe
+        curl -Ls $umamba_url/osx-64/latest | tar -xvj bin/micromamba
     else
-        wget -qO-$umamba_url/linux-64/latest | tar -xvj $umamba_exe
+        wget -qO-$umamba_url/linux-64/latest | tar -xvj /bin/micromamba
     fi
+    popd
 
     echo "Building $CMD '$ENV' environment..."
     if [[ "$CMD" != "pyenv" ]]; then
@@ -149,7 +150,7 @@ PYVER=3.10
         fi
 
         PYVER=$(pyenv install --list | egrep "^\s*$PYVER[0-9.]*" | tail -1)
-        echo -e "Installing Python $PYVER...\n"
+        echo -e "Installing Python $PYVER..."
         TKPREFIX=$(brew --prefix tcl-tk)
         PCO=("--enable-framework" "--with-tcltk-includes=-I$TKPREFIX/include")
         PCO+=("--with-tcltk-libs='-L$TKPREFIX/lib -ltcl8.6 -ltk8.6'")
