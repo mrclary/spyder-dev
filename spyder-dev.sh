@@ -16,6 +16,7 @@ shell-init () {
     case $1 in
         (pyenv)
             if [[ -n "$PYENV_ROOT" && -n "$PYENV_VIRTUALENV_INIT" ]]; then
+                eval "$(pyenv init --path)"
                 eval "$(pyenv init -)"
                 eval "$(pyenv virtualenv-init -)"
             else
@@ -133,8 +134,8 @@ PYVER=3.10
     fi
     popd
 
-    echo "Building $CMD '$ENV' environment..."
     if [[ "$CMD" != "pyenv" ]]; then
+        echo "Building $CMD '$ENV' environment..."
         # [[ "$OSTYPE" == "darwin"* ]] && SPEC=("python.app") || SPEC=()
         SPEC=()
         SPEC+=("--file" "$SPYREPO/requirements/conda.txt")
@@ -150,12 +151,18 @@ PYVER=3.10
         fi
 
         PYVER=$(pyenv install --list | egrep "^\s*$PYVER[0-9.]*" | tail -1)
-        echo -e "Installing Python $PYVER..."
-        TKPREFIX=$(brew --prefix tcl-tk)
-        PCO=("--enable-framework" "--with-tcltk-includes=-I$TKPREFIX/include")
-        PCO+=("--with-tcltk-libs='-L$TKPREFIX/lib -ltcl8.6 -ltk8.6'")
-        export PYTHON_CONFIGURE_OPTS="${PCO[@]}"
-        pyenv install --skip-existing $PYVER
+        if [[ -z "$(pyenv versions | grep $PYVER)" ]]; then
+            echo -e "Installing Python $PYVER...\n"
+            TKPREFIX=$(brew --prefix tcl-tk)
+            PCO=("--enable-framework" "--with-tcltk-includes=-I$TKPREFIX/include")
+            PCO+=("--with-tcltk-libs='-L$TKPREFIX/lib -ltcl8.6 -ltk8.6'")
+            export PYTHON_CONFIGURE_OPTS="${PCO[@]}"
+            pyenv install $PYVER
+        else
+            echo -e "Python $PYVER already installed."
+        fi
+
+        echo "Building $CMD '$ENV' environment..."
         pyenv virtualenv -f $PYVER $ENV
     fi
 
