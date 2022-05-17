@@ -147,7 +147,7 @@ PYVER=3.10
         SPEC+=("--file" "$SPYREPO/requirements/conda.txt")
         SPEC+=("--file" "$SPYREPO/requirements/tests.txt")
         SPEC+=("--file" "$DEVROOT/spyder-dev/plugins.txt")
-        $CMD create -n $ENV -q -y -c conda-forge python=$PYVER ${SPEC[@]}
+        $CMD create -n $ENV -y -c conda-forge python=$PYVER ${SPEC[@]}
     else
         if [[ -z "$(brew list --versions tcl-tk)" ]]; then
             echo -e "Installing Tcl/Tk...\n"
@@ -156,7 +156,7 @@ PYVER=3.10
             echo -e "Tcl/Tk already installed."
         fi
 
-        PYVER=$(pyenv install --list | egrep "^\s*$PYVER[0-9.]*" | tail -1)
+        PYVER=$(pyenv install --list | egrep "^\s*${PYVER}[0-9.]*" | tail -1 | xargs)
         if [[ -z "$(pyenv versions | grep $PYVER)" ]]; then
             echo -e "Installing Python $PYVER...\n"
             TKPREFIX=$(brew --prefix tcl-tk)
