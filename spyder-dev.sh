@@ -1,7 +1,13 @@
 # Command-line tools for managing Spyder development environments
 
 # ---- Path variables
-DEVROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
+if [[ "$SHELL" = *"zsh" ]]; then
+    FILE="${(%):-%x}"
+fi
+if [[ "$SHELL" = *"bash" ]]; then
+    FILE=$BASH_SOURCE
+fi
+DEVROOT=$(cd $(dirname $FILE)/../ 2> /dev/null && pwd -P)
 SPYREPO=$DEVROOT/spyder
 EXTDEPS=$SPYREPO/external-deps
 
