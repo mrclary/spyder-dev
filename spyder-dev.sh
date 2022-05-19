@@ -1,23 +1,12 @@
 # Command-line tools for managing Spyder development environments
 
 # ---- Path variables
-if [[ "$SHELL" = *"zsh" ]]; then
-    FILE="${(%):-%x}"
-fi
-if [[ "$SHELL" = *"bash" ]]; then
-    FILE=$BASH_SOURCE
-fi
-DEVROOT=$(cd $(dirname $FILE)/../ 2> /dev/null && pwd -P)
-SPYREPO=$DEVROOT/spyder
+SPYROOT=$(cd $(dirname ${BASH_SOURCE:-${(%):-%x}})/../ 2> /dev/null && pwd -P)
+SPYREPO=$SPYROOT/spyder
 EXTDEPS=$SPYREPO/external-deps
 
-# ---- Error function
-error () {
-    [[ -n "$1" ]] && (echo $1; exit 1)
-}
-
 # ---- Shell inits
-shell-init () {
+__shell-init () {
     echo "Initializing $1..."
     case $1 in
         (pyenv)
@@ -26,25 +15,25 @@ shell-init () {
                 eval "$(pyenv init -)"
                 eval "$(pyenv virtualenv-init -)"
             else
-                error "No PYENV_ROOT or PYENV_VIRTUALENV_INIT"
+                echo "No PYENV_ROOT or PYENV_VIRTUALENV_INIT"; exit 1
             fi;;
         (umamba|micromamba)
             if [[ -n "$MAMBA_EXE" ]]; then
                 eval "$($MAMBA_EXE shell hook)"
             else
-                error "No MAMBA_EXE, falling back to conda"
+                echo "No MAMBA_EXE, falling back to conda"; exit 1
             fi;;
         (conda)
             if [[ -n "$CONDA_EXE" ]]; then
                 eval "$($CONDA_EXE shell.bash hook)"
             else
-                error "No CONDA_EXE"
+                echo "No CONDA_EXE"; exit 1
             fi;;
     esac
 }
 
 # ---- Deactivate Python environments
-deactivate-env () {
+__deactivate-env () {
     echo "Deactivating virtual environments..."
 
     while [[ -n $CONDA_SHLVL && $CONDA_SHLVL != 0 ]]; do
@@ -56,6 +45,17 @@ deactivate-env () {
 
 # ---- Install a subrepo
 spy-install-subrepo () {(
+THISFUNC=$FUNCNAME
+help()
+{ cat <<EOF
+
+$THISFUNC [-h] subrepo
+Install subrepo in develop mode without dependencies
+
+  subrepo     Subrepo name
+
+EOF
+}
     if [[ "$1" = "python-lsp-server" && -e $SPYREPO/pylsp_utils.py ]]; then
         export SETUPTOOLS_SCM_PRETEND_VERSION=$(python $SPYREPO/pylsp_utils.py)
     fi
@@ -64,10 +64,19 @@ spy-install-subrepo () {(
 
 # ---- Install all subrepos
 spy-install-subrepos () {(set -e
+THISFUNC=$FUNCNAME
+help()
+{ cat <<EOF
+
+$THISFUNC [-h]
+Install Spyder's subrepos in develop mode
+
+EOF
+}
     echo "Installing subrepos..."
 
     if [[ -z "$CONDA_DEFAULT_ENV" && -z "$PYENV_VERSION" ]]; then
-        error "Do not install subrepos into base environment. Activate an environment first."
+        echo "Do not install subrepos into base environment. Activate an environment first."; exit 1
     fi
     if [[ -e "$SPYREPO/install_dev_repos.py" ]]; then
         python -bb -X dev -W error $SPYREPO/install_dev_repos.py --no-install spyder
@@ -121,14 +130,14 @@ PYVER=3.10
 
     ENV=$1
     if [[ -z "$ENV" ]]; then
-        error "Please provide environment name"
+        echo "Please provide environment name"; exit 1
     fi
 
     [[ "$CMD" = "umamba" ]] && CMD=micromamba || true
     [[ "$TYPE" = "build" ]] && CMD=pyenv || true
 
-    shell-init $CMD
-    deactivate-env
+    __shell-init $CMD
+    __deactivate-env
 
     echo "Updating micromamba..."
     umamba_url=https://micro.mamba.pm/api/micromamba
@@ -146,7 +155,7 @@ PYVER=3.10
         SPEC=()
         SPEC+=("--file" "$SPYREPO/requirements/conda.txt")
         SPEC+=("--file" "$SPYREPO/requirements/tests.txt")
-        SPEC+=("--file" "$DEVROOT/spyder-dev/plugins.txt")
+        SPEC+=("--file" "$SPYROOT/spyder-dev/plugins.txt")
         $CMD create -n $ENV -y -c conda-forge python=$PYVER ${SPEC[@]}
     else
         if [[ -z "$(brew list --versions tcl-tk)" ]]; then
@@ -201,11 +210,14 @@ help()
 { cat <<EOF
 
 $THISFUNC [-d] [-b <BRANCH>] [-h] REPO
-Clone python-lsp-server to spyder subrepo
+Clone REPO to spyder subrepo
 
 REPO          Repository to clone. Must be in spyder/external-deps
+
   -d          Clone local repository; otherwise clone from GitHub
+
   -b BRANCH   Clone from branch BRANCH; otherwise clone from HEAD
+
   -h          Print this help message
 
 EOF
@@ -213,39 +225,35 @@ EOF
 
     while getopts "hdb:" option; do
         case "$option" in
-            h)
-                help
-                exit;;
-            d)
-                DEV=true;;
-            b)
-                BRANCH=$OPTARG;;
+            (h) help; exit ;;
+            (d) DEV=true ;;
+            (b) BRANCH=$OPTARG ;;
         esac
     done
     shift $(($OPTIND - 1))
 
     REPO=$1
     if [[ -z "$REPO" || ! -d "$EXTDEPS/$REPO" ]]; then
-        error "Please specify a repository from spyder/external-deps."
+        echo "Please specify a repository from spyder/external-deps."; exit 1
     fi
 
     if [[ "$DEV" = true ]]; then
-        CLONE=$DEVROOT/$REPO
+        CLONE=$SPYROOT/$REPO
         ${BRANCH:=$(git -C $CLONE branch --show-current)}
     else
         case $REPO in
-            python-lsp-server)
+            (python-lsp-server)
                 CLONE=https://github.com/python-lsp/python-lsp-server.git
-                BRANCH=develop;;
-            qdarkstyle)
+                BRANCH=develop ;;
+            (qdarkstyle)
                 CLONE=https://github.com/ColinDuquesnoy/QDarkStyleSheet.git
-                BRANCH=develop;;
-            qtconsole)
+                BRANCH=develop ;;
+            (qtconsole)
                 CLONE=https://github.com/jupyter/qtconsole.git
-                BRANCH=4.2.x;;
-            spyder-kernels)
+                BRANCH=4.2.x ;;
+            (spyder-kernels)
                 CLONE=https://github.com/spyder-ide/spyder-kernels.git
-                BRANCH=2.x;;
+                BRANCH=2.x ;;
         esac
     fi
 
