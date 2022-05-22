@@ -153,8 +153,8 @@ fi
 echo "Updating micromamba in the spyder repo..."
 cd $SPYREPO/spyder
 umamba_url=https://micro.mamba.pm/api/micromamba
-arch_=64
-[[ "$(arch)" = "arm64" ]] && arch_=arm64
+arch_=$(arch)
+[[ "$arch_" = "i386" ]] && arch_=64
 if [[ "$OSTYPE" == "darwin"* ]]; then
     curl -Ls $umamba_url/osx-$arch_/latest | tar -xvj bin/micromamba
 else
