@@ -37,7 +37,7 @@ fi
 
 if [[ "$DEV" = true ]]; then
     CLONE=$SPYROOT/$REPO
-    ${BRANCH:=$(git -C $CLONE branch --show-current)}
+    BRANCH=${BRANCH:=$(git -C $CLONE branch --show-current)}
 else
     case $REPO in
         (python-lsp-server)
