@@ -6,7 +6,7 @@ SPYREPO=$SPYROOT/spyder
 
 ROOT=$HOME/opt
 MAN=mambaforge
-PYVER=3.10
+PYVER_INIT=3.10
 TYPE=dev
 
 help() { cat <<EOF
@@ -41,7 +41,7 @@ while getopts ":hm:n:t:v:" option; do
         (m) MAN=$OPTARG ;;
         (n) NAME=$OPTARG ;;
         (t) TYPE=$OPTARG ;;
-        (v) PYVER=$OPTARG ;;
+        (v) PYVER_INIT=$OPTARG ;;
     esac
 done
 shift $(($OPTIND - 1))
@@ -70,12 +70,17 @@ if [[ "$MAN" = "pyenv" ]]; then
         echo -e "Installing Tcl/Tk...\n"
         brew install tcl-tk
     else
-        echo -e "Tcl/Tk already installed."
+        echo "Tcl/Tk already installed."
     fi
 
-    PYVER=$(pyenv install --list | egrep "^\s*${PYVER}[0-9.]*" | tail -1 | xargs)
+    PYVER=$(pyenv install --list | egrep "^\s*${PYVER_INIT}[0-9.]*" | tail -1 | xargs)
+    if [[ -z "$PYVER" ]]; then
+        echo "Python $PYVER_INIT is not available."
+        exit 1
+    fi
+
     if [[ -z "$(pyenv versions | grep $PYVER)" ]]; then
-        echo -e "Installing Python $PYVER ...\n"
+        echo "Installing Python $PYVER..."
         TKPREFIX=$(brew --prefix tcl-tk)
         PCO=()
         # PCO+=("--enable-universalsdk" "--with-universal-archs=universal2")
@@ -84,7 +89,7 @@ if [[ "$MAN" = "pyenv" ]]; then
         export PYTHON_CONFIGURE_OPTS="${PCO[@]}"
         pyenv install $PYVER
     else
-        echo -e "Python $PYVER already installed."
+        echo "Python $PYVER already installed."
     fi
 
     echo "Building $MAN '$NAME' environment..."
@@ -137,7 +142,7 @@ else
 
     echo "Building $MAN '$NAME' environment..."
     create_opts=("-n" "$NAME" "${create_opts[@]}")
-    create_opts+=("-c" "conda-forge" "python=$PYVER")
+    create_opts+=("-c" "conda-forge" "python=$PYVER_INIT")
     # [[ "$OSTYPE" == "darwin"* ]] && create_opts+=("python.app")
     create_opts+=("--file=$SPYREPO/requirements/conda.txt")
     create_opts+=("--file=$SPYREPO/requirements/tests.txt")
