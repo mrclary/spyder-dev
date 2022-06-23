@@ -4,7 +4,7 @@ set -e
 SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
 SPYREPO=$SPYROOT/spyder
 
-ROOT=$HOME/opt
+ROOT=$HOME
 MAN=mambaforge
 PYVER_INIT=3.10
 TYPE=dev
@@ -150,7 +150,9 @@ else
     $cmd create ${create_opts[@]}
 
     echo "Installing spyder..."
-    run_opts+=("--no-banner")
+    if [[ "$MAN" = *"mamba"* ]]; then
+        run_opts+=("--no-banner")
+    fi
     $cmd run ${run_opts[@]} -n $NAME python -m pip install --no-deps -e $SPYREPO
     $cmd run ${run_opts[@]} -n $NAME $SPYROOT/spyder-dev/spy-install-subrepos.sh
 fi
@@ -159,9 +161,9 @@ echo "Updating micromamba in the spyder repo..."
 cd $SPYREPO/spyder
 umamba_url=https://micro.mamba.pm/api/micromamba
 arch_=$(arch)
-[[ "$arch_" = "i386" ]] && arch_=64
+[[ "$arch_" = "i386" || "$arch_" = "x86_64" ]] && arch_=64
 if [[ "$OSTYPE" == "darwin"* ]]; then
     curl -Ls $umamba_url/osx-$arch_/latest | tar -xvj bin/micromamba
 else
-    wget -qO-$umamba_url/linux-$arch_/latest | tar -xvj /bin/micromamba
+    wget -qO- $umamba_url/linux-$arch_/latest | tar -xvj bin/micromamba
 fi
