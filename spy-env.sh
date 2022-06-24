@@ -4,29 +4,24 @@ set -e
 SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
 SPYREPO=$SPYROOT/spyder
 
-ROOT=$HOME
 MAN=mambaforge
 PYVER_INIT=3.10
-TYPE=dev
 
 help() { cat <<EOF
 
-$THISFUNC [-h] [-m MAN] [-t TYPE] [-v PYVER] -n NAME [--]
+$THISFUNC [-h] [-m MAN] [-v PYVER] NAME [--]
 Create spyder environment ENV with Python version PYVER and spyder dependents.
 Dependents are determined from requirements files.
 
-A development type environment installs spyder and core dependencies in develop
-mode using pip's -e flag. If a conda environment, conda-forge channel is used.
+Spyder and core dependencies are installed in develop mode using pip's -e flag.
+If a conda environment, conda-forge channel is used.
 
   NAME        Environment name
 
   -h          Display this help
 
   -m MAN      Environment manager. One of "miniconda3", "miniforge3", "mambaforge",
-              "micromamba", or "pyenv". Default is "$MAN". If environment type
-              is "build" then this option is ignored and a pyenv is used.
-
-  -t TYPE     Environment type. One of "build" or "dev". Default is "dev".
+              "micromamba", or "pyenv". Default is "$MAN".
 
   -v PYVER    Specify the Python version. Default is ${PYVER}.x.
 
@@ -35,20 +30,20 @@ mode using pip's -e flag. If a conda environment, conda-forge channel is used.
 EOF
 }
 
-while getopts ":hm:n:t:v:" option; do
+while getopts ":hm:v:" option; do
     case $option in
         (h) help; exit ;;
         (m) MAN=$OPTARG ;;
-        (n) NAME=$OPTARG ;;
-        (t) TYPE=$OPTARG ;;
         (v) PYVER_INIT=$OPTARG ;;
     esac
 done
 shift $(($OPTIND - 1))
 
-if [[ -z "$NAME" ]]; then
+if [[ $# = 0 ]]; then
     echo "Please provide environment name"; exit 1
 fi
+
+NAME=$1; shift
 
 # Remaining arguments passed to create and install
 create_opts=()
@@ -62,8 +57,6 @@ for opt in $@; do
             dry_run=0 ;;
     esac
 done
-
-[[ "$TYPE" = "build" ]] && MAN=pyenv
 
 if [[ "$MAN" = "pyenv" ]]; then
     if [[ -z "$(brew list --versions tcl-tk)" ]]; then
@@ -100,13 +93,12 @@ if [[ "$MAN" = "pyenv" ]]; then
 
     echo "Installing spyder..."
     python -m pip install -U pip setuptools wheel
-    if [[ "$TYPE" = "build" ]]; then
-        INSTALLDIR=$SPYREPO/installers/macOS
-        SPEC=()
-        for f in $(ls $INSTALLDIR); do
-            [[ "$f" = req-* ]] && SPEC+=("-r" "$INSTALLDIR/$f") || true
-        done
-    fi
+
+    INSTALLDIR=$SPYREPO/installers/macOS
+    SPEC=()
+    for f in $(ls $INSTALLDIR); do
+        [[ "$f" = req-* ]] && SPEC+=("-r" "$INSTALLDIR/$f") || true
+    done
     install_opts=("${run_opts[@]}" "${SPEC[@]}" "-e" "$SPYREPO")
     python -m pip install ${install_opts[@]}
     $SPYROOT/spyder-dev/spy-install-subrepos.sh
@@ -115,21 +107,17 @@ else
     while [[ -z "$cmd" ]]; do
         case $MAN in
             (mambaforge)
-                cmd="$ROOT/$MAN/bin/mamba" ;;
+                cmd="$(which mamba)" ;;
             (micromamba)
-                cmd="$ROOT/$MAN/bin/micromamba" ;;
+                cmd="$MAMBA_EXE" ;;
             (miniconda3|miniforge3)
-                cmd="$ROOT/$MAN/bin/conda" ;;
+                cmd="$(which conda)" ;;
             (*)
                 echo "Unrecognized environment manager '$MAN'"
                 exit 1 ;;
         esac
 
-        if [[ -e "$cmd" ]]; then
-            if [[ "$MAN" = micromamba ]]; then
-                export MAMBA_ROOT_PREFIX=${MAMBA_ROOT_PREFIX:-"$ROOT/$MAN"}
-            fi
-        else
+        if [[ ! -e "$cmd" || "$cmd" != *"$MAN"* ]]; then
             if [[ "$MAN" = "miniconda3" ]]; then
                 echo "$MAN not available"; exit 1
             else
@@ -143,7 +131,7 @@ else
     echo "Building $MAN '$NAME' environment..."
     create_opts=("-n" "$NAME" "${create_opts[@]}")
     create_opts+=("-c" "conda-forge" "python=$PYVER_INIT")
-    # [[ "$OSTYPE" == "darwin"* ]] && create_opts+=("python.app")
+    # [[ "$OSTYPE" = "darwin"* ]] && create_opts+=("python.app")
     create_opts+=("--file=$SPYREPO/requirements/conda.txt")
     create_opts+=("--file=$SPYREPO/requirements/tests.txt")
     create_opts+=("--file=$SPYROOT/spyder-dev/plugins.txt")
@@ -162,7 +150,7 @@ cd $SPYREPO/spyder
 umamba_url=https://micro.mamba.pm/api/micromamba
 arch_=$(arch)
 [[ "$arch_" = "i386" || "$arch_" = "x86_64" ]] && arch_=64
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if [[ "$OSTYPE" = "darwin"* ]]; then
     curl -Ls $umamba_url/osx-$arch_/latest | tar -xvj bin/micromamba
 else
     wget -qO- $umamba_url/linux-$arch_/latest | tar -xvj bin/micromamba
