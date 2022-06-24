@@ -138,6 +138,7 @@ else
     $cmd create ${create_opts[@]}
 
     echo "Installing spyder..."
+    run_opts+=("--no-capture-output")
     if [[ "$MAN" = *"mamba"* ]]; then
         run_opts+=("--no-banner")
     fi
