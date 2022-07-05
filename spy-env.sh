@@ -30,6 +30,12 @@ If a conda environment, conda-forge channel is used.
 EOF
 }
 
+exec 3>&1  # Additional output descriptor for logging
+log(){
+    level="INFO"
+    date "+%Y-%m-%d %H:%M:%S [$level] [spy-env] -> $1" 1>&3
+}
+
 while getopts ":hm:v:" option; do
     case $option in
         (h) help; exit ;;
@@ -40,7 +46,8 @@ done
 shift $(($OPTIND - 1))
 
 if [[ $# = 0 ]]; then
-    echo "Please provide environment name"; exit 1
+    log "Please provide environment name"
+    exit 1
 fi
 
 NAME=$1; shift
@@ -60,20 +67,20 @@ done
 
 if [[ "$MAN" = "pyenv" ]]; then
     if [[ -z "$(brew list --versions tcl-tk)" ]]; then
-        echo -e "Installing Tcl/Tk...\n"
+        log "Installing Tcl/Tk..."
         brew install tcl-tk
     else
-        echo "Tcl/Tk already installed."
+        log "Tcl/Tk already installed."
     fi
 
     PYVER=$(pyenv install --list | egrep "^\s*${PYVER_INIT}[0-9.]*" | tail -1 | xargs)
     if [[ -z "$PYVER" ]]; then
-        echo "Python $PYVER_INIT is not available."
+        log "Python $PYVER_INIT is not available."
         exit 1
     fi
 
     if [[ -z "$(pyenv versions | grep $PYVER)" ]]; then
-        echo "Installing Python $PYVER..."
+        log "Installing Python $PYVER..."
         TKPREFIX=$(brew --prefix tcl-tk)
         PCO=()
         # PCO+=("--enable-universalsdk" "--with-universal-archs=universal2")
@@ -82,18 +89,18 @@ if [[ "$MAN" = "pyenv" ]]; then
         export PYTHON_CONFIGURE_OPTS="${PCO[@]}"
         pyenv install $PYVER
     else
-        echo "Python $PYVER already installed."
+        log "Python $PYVER already installed."
     fi
 
-    echo "Building $MAN '$NAME' environment..."
+    log "Building $MAN '$NAME' environment..."
     create_opts+=("$PYVER" "$NAME")
     pyenv virtualenv ${create_opts[@]}
 
     source $HOME/.pyenv/versions/$NAME/bin/activate
 
-    echo "Installing spyder..."
     python -m pip install -U pip setuptools wheel
 
+    log "Installing spyder..."
     INSTALLDIR=$SPYREPO/installers/macOS
     SPEC=("importlib-metadata")
     for f in $(ls $INSTALLDIR); do
@@ -113,22 +120,22 @@ else
             (miniconda3|miniforge3)
                 cmd="$(which conda)" ;;
             (*)
-                echo "Unrecognized environment manager '$MAN'"
+                log "Unrecognized environment manager '$MAN'"
                 exit 1 ;;
         esac
 
         if [[ ! -e "$cmd" || "$cmd" != *"$MAN"* ]]; then
             if [[ "$MAN" = "miniconda3" ]]; then
-                echo "$MAN not available"; exit 1
+                log "$MAN not available"; exit 1
             else
                 unset cmd
-                echo "$MAN not available; falling back to miniconda3"
+                log "$MAN not available; falling back to miniconda3"
                 MAN=miniconda3
             fi
         fi
     done
 
-    echo "Building $MAN '$NAME' environment..."
+    log "Building $MAN '$NAME' environment..."
     create_opts=("-n" "$NAME" "${create_opts[@]}")
     create_opts+=("-c" "conda-forge" "python=$PYVER_INIT")
     # [[ "$OSTYPE" = "darwin"* ]] && create_opts+=("python.app")
@@ -137,7 +144,7 @@ else
     create_opts+=("--file=$SPYROOT/spyder-dev/plugins.txt")
     $cmd create ${create_opts[@]}
 
-    echo "Installing spyder..."
+    log "Installing spyder..."
     run_opts+=("--no-capture-output")
     if [[ "$MAN" = *"mamba"* ]]; then
         run_opts+=("--no-banner")
@@ -146,7 +153,7 @@ else
     $cmd run ${run_opts[@]} -n $NAME $SPYROOT/spyder-dev/spy-install-subrepos.sh
 fi
 
-echo "Updating micromamba in the spyder repo..."
+log "Updating micromamba in the spyder repo..."
 cd $SPYREPO/spyder
 umamba_url=https://micro.mamba.pm/api/micromamba
 arch_=$(arch)

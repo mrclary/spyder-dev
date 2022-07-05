@@ -21,6 +21,12 @@ REPO          Repository to clone. Must be in spyder/external-deps
 EOF
 }
 
+exec 3>&1  # Additional output descriptor for logging
+log(){
+    level="INFO"
+    date "+%Y-%m-%d %H:%M:%S [$level] [clone-subrepo] -> $1" 1>&3
+}
+
 while getopts "hdb:" option; do
     case "$option" in
         (h) help; exit ;;
@@ -32,7 +38,8 @@ shift $(($OPTIND - 1))
 
 REPO=$1
 if [[ -z "$REPO" || ! -d "$EXTDEPS/$REPO" ]]; then
-    echo "Please specify a repository from spyder/external-deps."; exit 1
+    log "Please specify a repository from spyder/external-deps."
+    exit 1
 fi
 
 if [[ "$DEV" = true ]]; then
@@ -55,5 +62,4 @@ else
     esac
 fi
 
-# echo "CLONE = $CLONE; DEV = $DEV; BRANCH = $BRANCH; REPO = $REPO"
 git -C $SPYREPO subrepo clone $CLONE external-deps/$REPO -b $BRANCH -f
