@@ -95,7 +95,7 @@ if [[ "$MAN" = "pyenv" ]]; then
     python -m pip install -U pip setuptools wheel
 
     INSTALLDIR=$SPYREPO/installers/macOS
-    SPEC=()
+    SPEC=("importlib-metadata")
     for f in $(ls $INSTALLDIR); do
         [[ "$f" = req-* ]] && SPEC+=("-r" "$INSTALLDIR/$f") || true
     done
