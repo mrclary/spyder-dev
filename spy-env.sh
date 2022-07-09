@@ -108,7 +108,7 @@ if [[ "$MAN" = "pyenv" ]]; then
     done
     install_opts=("${run_opts[@]}" "${SPEC[@]}" "-e" "$SPYREPO")
     python -m pip install ${install_opts[@]}
-    $SPYROOT/spyder-dev/spy-install-subrepos.sh
+    python $SPYREPO/install_dev_repos.py --no-install spyder
 else
     # Determine conda flavor package manager command
     while [[ -z "$cmd" ]]; do
@@ -138,19 +138,23 @@ else
     log "Building $MAN '$NAME' environment..."
     create_opts=("-n" "$NAME" "${create_opts[@]}")
     create_opts+=("-c" "conda-forge" "python=$PYVER_INIT")
-    # [[ "$OSTYPE" = "darwin"* ]] && create_opts+=("python.app")
-    create_opts+=("--file=$SPYREPO/requirements/conda.txt")
-    create_opts+=("--file=$SPYREPO/requirements/tests.txt")
-    create_opts+=("--file=$SPYROOT/spyder-dev/plugins.txt")
     $cmd create ${create_opts[@]}
+    update_opts=("env" "update" "-n" "$NAME")
+    $cmd ${update_opts[@]} --file $SPYREPO/requirements/main.yml
+    if [[ "$OSTYPE" = "darwin"* ]]; then
+        $cmd ${update_opts[@]} --file $SPYREPO/requirements/macos.yml
+    else
+        $cmd ${update_opts[@]} --file $SPYREPO/requirements/linux.yml
+    fi
+    $cmd ${update_opts[@]} --file $SPYREPO/requirements/tests.yml
+    $cmd --no-banner update -n $NAME -c conda-forge --file $SPYROOT/spyder-dev/plugins.txt
 
     log "Installing spyder..."
     run_opts+=("--no-capture-output")
     if [[ "$MAN" = *"mamba"* ]]; then
         run_opts+=("--no-banner")
     fi
-    $cmd run ${run_opts[@]} -n $NAME python -m pip install --no-deps -e $SPYREPO
-    $cmd run ${run_opts[@]} -n $NAME $SPYROOT/spyder-dev/spy-install-subrepos.sh
+    $cmd run ${run_opts[@]} -n $NAME python $SPYREPO/install_dev_repos.py
 fi
 
 log "Updating micromamba in the spyder repo..."
