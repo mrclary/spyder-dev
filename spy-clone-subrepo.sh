@@ -2,6 +2,7 @@
 set -e
 
 SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
+ROOT=$(dirname $SPYROOT)
 SPYREPO=$SPYROOT/spyder
 EXTDEPS=$SPYREPO/external-deps
 
@@ -43,7 +44,12 @@ if [[ -z "$REPO" || ! -d "$EXTDEPS/$REPO" ]]; then
 fi
 
 if [[ "$DEV" = true ]]; then
-    CLONE=$SPYROOT/$REPO
+    case $REPO in
+        (spyder-kernels)
+            CLONE=$SPYROOT/$REPO ;;
+        (python-lsp-server|qdarkstyle|qtconsole)
+            CLONE=$ROOT/$REPO ;;
+    esac
     BRANCH=${BRANCH:=$(git -C $CLONE branch --show-current)}
 else
     case $REPO in
