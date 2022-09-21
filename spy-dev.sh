@@ -23,8 +23,9 @@ done
 shift $(($OPTIND - 1))
 
 if [[ -z $unset_var ]]; then
-    SPYROOT=$(cd $(dirname ${BASH_SOURCE:-${(%):-%x}})/../ 2> /dev/null && pwd -P)
-    SPYREPO=$SPYROOT/spyder
+    SPYDEV=$(dirname ${BASH_SOURCE:-${(%):-%x}})
+    ROOT=$(cd $SPYDEV/../ 2> /dev/null && pwd -P)
+    SPYREPO=$ROOT/spyder
     EXTDEPS=$SPYREPO/external-deps
 
     export SPYDERAPP=$REPOS/Spyder-IDE/spyder/installers/macOS/dist/Spyder.app
@@ -39,14 +40,15 @@ if [[ -z $unset_var ]]; then
     alias spypython="PYTHONHOME=$SPYPYTHONHOME $SPYDERAPP/Contents/MacOS/python"
     alias teststart="spypython $SPYDERAPP/Contents/Resources/lib/python*/spyder/app/start.py"
     alias testrestart="spypython $SPYDERAPP/Contents/Resources/lib/python*/spyder/app/restart.py"
-    alias spy-install-subrepo="$SPYROOT/spyder-dev/spy-install-subrepo.sh"
-    alias spy-install-subrepos="$SPYROOT/spyder-dev/spy-install-subrepos.sh"
-    alias spy-env="$SPYROOT/spyder-dev/spy-env.sh"
-    alias spy-clone-subrepo="$SPYROOT/spyder-dev/spy-clone-subrepo.sh"
-    alias spy-certkeychain="$SPYROOT/spyder/installers/macOS/certkeychain.sh"
-    alias spy-codesign="$SPYROOT/spyder/installers/macOS/codesign.sh"
-    alias spy-notarize="$SPYROOT/spyder/installers/macOS/notarize.sh"
-    alias spy-build-sign-notarize="$SPYROOT/spyder-dev/spy-build-sign-notarize.sh"
+    alias spy-install-subrepo="$SPYDEV/spy-install-subrepo.sh"
+    alias spy-install-subrepos="$SPYDEV/spy-install-subrepos.sh"
+    alias spy-env="$SPYDEV/spy-env.sh"
+    alias spy-clone-subrepo="$SPYDEV/spy-clone-subrepo.sh"
+    alias spy-certkeychain="$ROOT/spyder/installers/macOS/certkeychain.sh"
+    alias spy-codesign="$ROOT/spyder/installers/macOS/codesign.sh"
+    alias spy-notarize="$ROOT/spyder/installers/macOS/notarize.sh"
+    alias spy-build-sign-notarize="$SPYDEV/spy-build-sign-notarize.sh"
+    alias spy-build-installers="$SPYDEV/build-installers.sh"
 else
     raw_env=($(/usr/bin/env -i bash -c "source $BASH_SOURCE; compgen -va"))
     new_env=($(/usr/bin/env -i bash -c "source $BASH_SOURCE; spy-var; compgen -va"))
