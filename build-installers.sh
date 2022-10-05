@@ -66,7 +66,7 @@ shift $(($OPTIND - 1))
 IFS=$OIFS
 unset OIFS
 
-if [[ -n $all ]]; then
+if [[ -n $ALL ]]; then
     BUILDCONDA=0
     BUILDPKG=0
     NOTARIZE=0
@@ -80,34 +80,36 @@ inst_dir=$(cd $here/../spyder/installers-conda 2> /dev/null && pwd)
 if [[ -n $BUILDCONDA ]]; then
     log "Building conda packages..."
     python $inst_dir/build_conda_pkgs.py ${build_conda_opts[@]}
+    log "Building conda packages complete"
+else
+    log "Not building conda packages"
+fi
+
+# ---- Build keychain
+if [[ -n $BUILDPKG || -n $NOTARIZE ]]; then
+    trap "security list-keychain -s login.keychain; rm -rf certificate.p12" EXIT
+    source "$here/~cert/cert.sh"
+    $inst_dir/certkeychain.sh $MACOS_CERTIFICATE_PWD $MACOS_CERTIFICATE $MACOS_INSTALLER_CERTIFICATE "$here/~cert/DeveloperIDG2CA.cer"
 fi
 
 # ---- Build installer pkg
-if [[ -n $BUILDPKG || -n $NOTARIZE ]]; then
-    CNAME=$(security find-identity -p codesigning -v | pcregrep -o1 "\(([0-9A-Z]+)\)")
-    log "Certificate ID: $CNAME"
-fi
-
 if [[ -n $BUILDPKG ]]; then
-    log "Bulding installer pkg..."
-    export CONSTRUCTOR_SIGNING_IDENTITY=$CNAME
-    export CONSTRUCTOR_NOTARIZATION_IDENTITY=$CNAME
-    python $inst_dir/build_installers.py ${build_pkg_opts[@]}
-fi
-
-if [[ -n $NOTARIZE || -n $INSTALL ]]; then
-    pkg_name="$(python $inst_dir/build_installers.py --artifact-name)"
-fi
-
-if [[ -n $NOTARIZE ]]; then
+    log "Building installer pkg..."
     _codesign=$(which codesign)
     if [[ $_codesign =~ ${CONDA_PREFIX}.* ]]; then
         # Find correct codesign
-        log "Moving $_codesign"
+        log "Moving $_codesign..."
         mv $_codesign ${_codesign}.bak
     fi
 
-    $inst_dir/notarize.sh $pkg_name ${notarize_opts[@]}
+    CNAME=$(security find-identity -p codesigning -v | pcregrep -o1 "\(([0-9A-Z]+)\)")
+    python $inst_dir/build_installers.py --cert-id=$CNAME ${build_pkg_opts[@]}
+else
+    log "Not building installer pkg"
+fi
+
+if [[ -n $INSTALL || -n $NOTARIZE ]]; then
+    pkg_name="$(python $inst_dir/build_installers.py --artifact-name)"
 fi
 
 if [[ -n $INSTALL ]]; then
@@ -120,15 +122,23 @@ if [[ -n $INSTALL ]]; then
 
     # Run installer
     log "Installing Spyder standalone application..."
-    # pkgutil --expand $inst_dir/dist/$pkg_name $inst_dir/dist/pkg
-    installer -dumplog -pkg $pkg_name -target CurrentUserHomeDirectory
+    # pkgutil --expand-full $inst_dir/dist/$pkg_name $inst_dir/dist/pkg
+    installer -dumplog -pkg $pkg_name -target CurrentUserHomeDirectory 2>&1
 
     if [[ -e "$app_path" ]]; then
         log "Spyder.app info:"
         tree $app_path
-        cat $app_path/Contents/MacOS/Spyder
+        cat $app_path/Contents/Info.plist
         echo ""
     else
         log "$app_path does not exist"
     fi
+else
+    log "Not installing"
+fi
+
+if [[ -n $NOTARIZE ]]; then
+    $inst_dir/notarize.sh $pkg_name ${notarize_opts[@]}
+else
+    log "Not notariizing"
 fi

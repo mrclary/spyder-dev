@@ -48,7 +48,8 @@ if [[ "$DEV" = true ]]; then
         (spyder-kernels)
             CLONE=$SPYROOT/$REPO ;;
         (python-lsp-server|qdarkstyle|qtconsole)
-            CLONE=$ROOT/$REPO ;;
+#             CLONE=$ROOT/$REPO ;;
+            CLONE=git@github.com:mrclary/python-lsp-server.git
     esac
     BRANCH=${BRANCH:=$(git -C $CLONE branch --show-current)}
 else
@@ -68,4 +69,4 @@ else
     esac
 fi
 
-git -C $SPYREPO subrepo clone $CLONE external-deps/$REPO -b $BRANCH -f
+git -C $SPYREPO subrepo clone $CLONE external-deps/$REPO -b $BRANCH -u -f
