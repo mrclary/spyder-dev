@@ -8,16 +8,25 @@ EXTDEPS=$SPYREPO/external-deps
 
 help() { cat <<EOF
 
-$(basename $0) [-d] [-b <BRANCH>] [-h] REPO
-Clone REPO to spyder subrepo
+$(basename $0) [-h] [-c] [-r upstream|fork|local] [-b BRANCH] [-O OPTIONS] REPO
 
-REPO          Repository to clone. Must be in spyder/external-deps
+Pull to subrepo REPO
 
-  -d          Clone local repository; otherwise clone from GitHub
+Options:
+  -h          Print this help message.
 
-  -b BRANCH   Clone from branch BRANCH; otherwise clone from HEAD
+  -c          Use subrepo clone instead of pull.
 
-  -h          Print this help message
+  -r REMOTE   Pull from REMOTE. Must be one of "upstream", "fork",
+              or "local". If not provided, "upstream" is used.
+
+  -b BRANCH   Pull from branch BRANCH. "HEAD" will be used if the option
+              is not provided.
+
+  -O OPTIONS  Additional options passed to subrepo pull (or clone). This should
+              be a single string of space-separated options.
+
+  REPO        Repository to pull. Must be in spyder/external-deps.
 
 EOF
 }
@@ -25,48 +34,74 @@ EOF
 exec 3>&1  # Additional output descriptor for logging
 log(){
     level="INFO"
-    date "+%Y-%m-%d %H:%M:%S [$level] [clone-subrepo] -> $1" 1>&3
+    echo "$(date "+%Y-%m-%d %H:%M:%S") [$level] [clone-subrepo] -> $@" 1>&3
 }
 
-while getopts "hdb:" option; do
+subcmd=pull
+remote=upstream
+extra_opts=()
+
+OIFS=$IFS
+IFS=' '
+while getopts "hcr:b:O:" option; do
     case "$option" in
         (h) help; exit ;;
-        (d) DEV=true ;;
-        (b) BRANCH=$OPTARG ;;
+        (c) subcmd=clone ;;
+        (r) remote=$OPTARG ;;
+        (b) branch=$OPTARG ;;
+        (O) extra_opts+=($OPTARG) ;;
     esac
 done
 shift $(($OPTIND - 1))
+IFS=$OIFS
+unset OIFS
 
 REPO=$1
 if [[ -z "$REPO" || ! -d "$EXTDEPS/$REPO" ]]; then
     log "Please specify a repository from spyder/external-deps."
     exit 1
 fi
+shift
 
-if [[ "$DEV" = true ]]; then
-    case $REPO in
-        (spyder-kernels)
-            CLONE=$SPYROOT/$REPO ;;
-        (python-lsp-server|qdarkstyle|qtconsole)
-#             CLONE=$ROOT/$REPO ;;
-            CLONE=git@github.com:mrclary/python-lsp-server.git
-    esac
-    BRANCH=${BRANCH:=$(git -C $CLONE branch --show-current)}
-else
-    case $REPO in
-        (python-lsp-server)
-            CLONE=https://github.com/python-lsp/python-lsp-server.git
-            BRANCH=develop ;;
-        (qdarkstyle)
-            CLONE=https://github.com/ColinDuquesnoy/QDarkStyleSheet.git
-            BRANCH=develop ;;
-        (qtconsole)
-            CLONE=https://github.com/jupyter/qtconsole.git
-            BRANCH=4.2.x ;;
-        (spyder-kernels)
-            CLONE=https://github.com/spyder-ide/spyder-kernels.git
-            BRANCH=2.x ;;
-    esac
+extra_opts+=($@)
+
+case $REPO in
+    (python-lsp-server)
+        upstream=https://github.com/python-lsp/python-lsp-server.git
+        fork=https://github.com/mrclary/python-lsp-server.git
+        local=$ROOT/python-lsp-server
+        : ${branch:=develop}
+        ;;
+    (qdarkstyle)
+        upstream=remote=https://github.com/ColinDuquesnoy/QDarkStyleSheet.git
+        fork=remote=https://github.com/mrclary/QDarkStyleSheet.git
+        local=$ROOT/qdarkstyle
+        : ${branch:=develop}
+        ;;
+    (qtconsole)
+        upstream=https://github.com/jupyter/qtconsole.git
+        fork=https://github.com/mrclary/qtconsole.git
+        local=$ROOT/qtconsole
+        : ${branch:=master}
+        ;;
+    (spyder-kernels)
+        upstream=https://github.com/spyder-ide/spyder-kernels.git
+        fork=https://github.com/mrclary/spyder-kernels.git
+        local=$SPYROOT/spyder-kernels
+        : ${branch:=2.x}
+        ;;
+esac
+
+if [[ -z ${!remote} ]]; then
+    log "Unknown remote option: \"${remote}\". Using $upstream"
+    remote=upstream
 fi
 
-git -C $SPYREPO subrepo clone $CLONE external-deps/$REPO -b $BRANCH -u -f
+args=("external-deps/$REPO")
+opts=("-b" "$branch")
+# "-f")
+[[ $subcmd = "pull" ]] && opts+=("-r" "${!remote}" "-u")
+[[ $subcmd = "clone" ]] && args=("${!remote}" "${args[@]}")
+cmd=("git" "-C" "$SPYREPO" "subrepo" "$subcmd" "${args[@]}" "${opts[@]}" "${extra_opts[@]}")
+log "command: ${cmd[@]}"
+${cmd[@]}

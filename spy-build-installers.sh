@@ -2,7 +2,8 @@
 set -e
 
 help(){ cat <<EOF
-$(basename $0) [-h] [-a | [-c] [-p] [-n] [-i]] [-v] [-C] [-P] [-N]
+$(basename $0) [-h] [-a | [-c] [-p] [-n] [-i]] [-C] [-P] [-N]
+
 Build conda packages, build package installer, notarize the package, and/or
 install the package for user.
 
@@ -40,7 +41,7 @@ EOF
 exec 3>&1  # Additional output descriptor for logging
 log(){
     level="INFO"
-    date "+%Y-%m-%d %H:%M:%S [$level] [build] -> $1" 1>&3
+    echo "$(date "+%Y-%m-%d %H:%M:%S") [$level] [build] -> $@" 1>&3
 }
 
 build_conda_opts=()
@@ -75,6 +76,7 @@ fi
 
 here=$(dirname ${BASH_SOURCE:-${(%):-%x}})
 inst_dir=$(cd $here/../spyder/installers-conda 2> /dev/null && pwd)
+export CONDA_BLD_PATH=$HOME/.conda/conda-bld
 
 # ---- Build conda packages
 if [[ -n $BUILDCONDA ]]; then
@@ -117,7 +119,7 @@ if [[ -n $INSTALL ]]; then
     log "Removing previous artifacts..."
     app_path=~/Applications/Spyder.app
     rm -rf $app_path
-    rm -rf ~/Library/spyder-5.4.0.dev0
+    rm -rf ~/Library/spyder-5.4.1.dev*
     rm -rf $inst_dir/dist/pkg
 
     # Run installer
@@ -130,6 +132,8 @@ if [[ -n $INSTALL ]]; then
         tree $app_path
         cat $app_path/Contents/Info.plist
         echo ""
+        cat $app_path/Contents/MacOS/spyder-script
+        echo ""
     else
         log "$app_path does not exist"
     fi
@@ -138,7 +142,7 @@ else
 fi
 
 if [[ -n $NOTARIZE ]]; then
-    $inst_dir/notarize.sh $pkg_name ${notarize_opts[@]}
+    $inst_dir/notarize.sh ${notarize_opts[@]} $pkg_name
 else
     log "Not notariizing"
 fi

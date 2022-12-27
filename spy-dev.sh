@@ -7,6 +7,7 @@ $FUNCNAME [-h] [-u]
 
 Set or unset Spyder development environment variables
 
+Options:
   -h    Display this help and return
 
   -u    Unset all environment variables and aliases set by this function
@@ -36,26 +37,33 @@ if [[ -z $unset_var ]]; then
 #     export SPYDER_IS_BOOTSTRAP=False
     export SPYEXECUTABLEPATH=$SPYDERAPP/Contents/MacOS/Spyder
 
+    export ROOT_PREFIX=$HOME/Library/spyder-5.4.0
+    export PREFIX=$ROOT_PREFIX/envs/spyder-5.4.0
+    export CONDA_BLD_PATH=$HOME/.conda/conda-bld
+
     alias spyderapp="$SPYEXECUTABLEPATH"
     alias spypython="PYTHONHOME=$SPYPYTHONHOME $SPYDERAPP/Contents/MacOS/python"
     alias teststart="spypython $SPYDERAPP/Contents/Resources/lib/python*/spyder/app/start.py"
     alias testrestart="spypython $SPYDERAPP/Contents/Resources/lib/python*/spyder/app/restart.py"
+
+    alias spy-build-installers="$SPYDEV/spy-build-installers.sh"
+    alias spy-build-sign-notarize="$SPYDEV/spy-build-sign-notarize.sh"
+    alias spy-certkeychain="$ROOT/spyder/installers/macOS/certkeychain.sh"
+    alias spy-clone-subrepo="$SPYDEV/spy-clone-subrepo.sh"
+    alias spy-codesign="$ROOT/spyder/installers/macOS/codesign.sh"
+    alias spy-env="$SPYDEV/spy-env.sh"
     alias spy-install-subrepo="$SPYDEV/spy-install-subrepo.sh"
     alias spy-install-subrepos="$SPYDEV/spy-install-subrepos.sh"
-    alias spy-env="$SPYDEV/spy-env.sh"
-    alias spy-clone-subrepo="$SPYDEV/spy-clone-subrepo.sh"
-    alias spy-certkeychain="$ROOT/spyder/installers/macOS/certkeychain.sh"
-    alias spy-codesign="$ROOT/spyder/installers/macOS/codesign.sh"
+    alias spy-menuinst="$SPYDEV/spy-menuinst.sh"
     alias spy-notarize="$ROOT/spyder/installers/macOS/notarize.sh"
-    alias spy-build-sign-notarize="$SPYDEV/spy-build-sign-notarize.sh"
-    alias spy-build-installers="$SPYDEV/build-installers.sh"
+    alias spy-update-conda-app="$SPYDEV/spy-update-conda-app.sh"
 else
     raw_env=($(/usr/bin/env -i bash -c "source $BASH_SOURCE; compgen -va"))
     new_env=($(/usr/bin/env -i bash -c "source $BASH_SOURCE; spy-var; compgen -va"))
     to_remove=($(echo ${raw_env[@]} ${new_env[@]} | tr ' ' '\n' | sort | uniq -u))
 #     declare -p to_remove
     unalias ${to_remove[@]} 2> /dev/null
-    unset -v ${to_remove[@]} raw_env new_env to_remove
+    unset -v ${to_remove[@]} raw_env new_env to_remove 2> /dev/null
 fi
 
 unset help unset_var option OPTIND OPTERR

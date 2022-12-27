@@ -4,6 +4,7 @@ set -e
 help() { cat <<EOF
 
 $(basename $0) [-h]
+
 Install Spyder's subrepos in develop mode
 
 EOF
@@ -12,7 +13,7 @@ EOF
 exec 3>&1  # Additional output descriptor for logging
 log(){
     level="INFO"
-    date "+%Y-%m-%d %H:%M:%S [$level] [install-subrepos] -> $1" 1>&3
+    echo "$(date "+%Y-%m-%d %H:%M:%S") [$level] [install-subrepos] -> $@" 1>&3
 }
 
 SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)

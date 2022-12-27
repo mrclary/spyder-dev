@@ -9,21 +9,23 @@ PYVER_INIT=3.10
 
 help() { cat <<EOF
 
-$THISFUNC [-h] [-m MAN] [-v PYVER] NAME [--]
+$(basename $0) [-h] [-m MAN] [-v PYVER] NAME [--]
+
 Create spyder environment ENV with Python version PYVER and spyder dependents.
 Dependents are determined from requirements files.
 
 Spyder and core dependencies are installed in develop mode using pip's -e flag.
 If a conda environment, conda-forge channel is used.
 
-  NAME        Environment name
-
+Options:
   -h          Display this help
 
   -m MAN      Environment manager. One of "miniconda3", "miniforge3", "mambaforge",
               "micromamba", or "pyenv". Default is "$MAN".
 
   -v PYVER    Specify the Python version. Default is ${PYVER}.x.
+
+  NAME        Environment name
 
   --          Additional options for create and install
 
@@ -33,7 +35,7 @@ EOF
 exec 3>&1  # Additional output descriptor for logging
 log(){
     level="INFO"
-    date "+%Y-%m-%d %H:%M:%S [$level] [spy-env] -> $1" 1>&3
+    echo "$(date "+%Y-%m-%d %H:%M:%S") [$level] [spy-env] -> $@" 1>&3
 }
 
 while getopts ":hm:v:" option; do
