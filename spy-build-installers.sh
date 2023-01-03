@@ -100,7 +100,7 @@ else
 fi
 
 # ---- Build keychain
-if [[ -n $BUILDPKG || -n $NOTARIZE ]]; then
+if [[ (-n $BUILDPKG || -n $NOTARIZE) && $OSTYPE = "darwin"* ]]; then
     trap "security list-keychain -s login.keychain; rm -rf certificate.p12" EXIT
     source "$here/~cert/cert.sh"
     $inst_dir/certkeychain.sh $MACOS_CERTIFICATE_PWD $MACOS_CERTIFICATE $MACOS_INSTALLER_CERTIFICATE "$here/~cert/DeveloperIDG2CA.cer"
@@ -108,18 +108,21 @@ fi
 
 # ---- Build installer pkg
 if [[ -n $BUILDPKG ]]; then
-    log "Building installer pkg..."
-    _codesign=$(which codesign)
-    if [[ $_codesign =~ ${CONDA_PREFIX}.* ]]; then
-        # Find correct codesign
-        log "Moving $_codesign..."
-        mv $_codesign ${_codesign}.bak
-    fi
+    log "Building installer..."
+    if [[ $OSTYPE = "darwin"* ]]; then
+        _codesign=$(which codesign)
+        if [[ $_codesign =~ ${CONDA_PREFIX}.* ]]; then
+            # Find correct codesign
+            log "Moving $_codesign..."
+            mv $_codesign ${_codesign}.bak
+        fi
 
-    CNAME=$(security find-identity -p codesigning -v | pcregrep -o1 "\(([0-9A-Z]+)\)")
-    python $inst_dir/build_installers.py --cert-id=$CNAME ${build_pkg_opts[@]}
+        CNAME=$(security find-identity -p codesigning -v | pcregrep -o1 "\(([0-9A-Z]+)\)")
+        build_pkg_opts+=("--cert-id=$CNAME")
+    fi
+    python $inst_dir/build_installers.py ${build_pkg_opts[@]}
 else
-    log "Not building installer pkg"
+    log "Not building installer"
 fi
 
 if [[ -n $INSTALL || -n $NOTARIZE ]]; then
@@ -128,33 +131,41 @@ fi
 
 if [[ -n $INSTALL ]]; then
     # Remove previous install
-    log "Removing previous artifacts..."
-    app_path=~/Applications/Spyder.app
-    rm -rf $app_path
-    rm -rf ~/Library/spyder-5.4.1.dev*
-    rm -rf $inst_dir/dist/pkg
+    log "Uninstall previous installation..."
+    if [[ $OSTYPE = "darwin"* ]]; then
+        app_path=~/Applications/Spyder.app
+        rm -rf $app_path
+        rm -rf ~/Library/spyder-5.4.1.dev*
+        rm -rf $inst_dir/dist/pkg
+    else
+        log "Uninstall not implemented for $OSTYPE."
+    fi
 
     # Run installer
     log "Installing Spyder standalone application..."
-    # pkgutil --expand-full $inst_dir/dist/$pkg_name $inst_dir/dist/pkg
-    installer -dumplog -pkg $pkg_name -target CurrentUserHomeDirectory 2>&1
+    if [[ $OSTYPE = "darwin"* ]]; then
+        # pkgutil --expand-full $inst_dir/dist/$pkg_name $inst_dir/dist/pkg
+        installer -dumplog -pkg $pkg_name -target CurrentUserHomeDirectory 2>&1
 
-    if [[ -e "$app_path" ]]; then
-        log "Spyder.app info:"
-        tree $app_path
-        cat $app_path/Contents/Info.plist
-        echo ""
-        cat $app_path/Contents/MacOS/spyder-script
-        echo ""
+        if [[ -e "$app_path" ]]; then
+            log "Spyder.app info:"
+            tree $app_path
+            cat $app_path/Contents/Info.plist
+            echo ""
+            cat $app_path/Contents/MacOS/spyder-script
+            echo ""
+        else
+            log "$app_path does not exist"
+        fi
     else
-        log "$app_path does not exist"
+        "$pkg_name"
     fi
 else
     log "Not installing"
 fi
 
-if [[ -n $NOTARIZE ]]; then
+if [[ -n $NOTARIZE && $OSTYPE = "darwin"* ]]; then
     $inst_dir/notarize.sh ${notarize_opts[@]} $pkg_name
 else
-    log "Not notariizing"
+    log "Not notarizing"
 fi
