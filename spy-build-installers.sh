@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
+here=$(dirname ${BASH_SOURCE:-${(%):-%x}})
+inst_dir=$(cd $here/../spyder/installers-conda 2> /dev/null && pwd)
+export CONDA_BLD_PATH=$HOME/.conda/conda-bld
+
 help(){ cat <<EOF
 $(basename $0) [-h] [-a | [-c] [-p] [-n] [-i]] [-C] [-P] [-N]
 
@@ -17,7 +21,7 @@ Options:
   -c          Build conda packages for Spyder and external-deps. Uses
               build_conda_pkgs.py.
 
-  -p          Build package installer (.pkg). Uses build_installers.py
+  -p          Build package installer (.pkg/.sh). Uses build_installers.py
 
   -n          Notarize the package installer. Uses notarize.sh
 
@@ -25,7 +29,7 @@ Options:
 
   -C OPTIONS  Options for building conda packages. This should be a single
               string of space-separated options, e.g.
-              "--debug --skip-external-deps"
+              "--debug --build spyder"
 
   -P OPTIONS  Options for building the package installer. This should be a
               single string of space-separated options, e.g.
@@ -34,6 +38,18 @@ Options:
   -N OPTIONS  Options for notarizing the package installer. This should be a
               single string of space-separated options, e.g.
               "-v -p PASSWORD"
+
+------------------------------------------------------------------------------
+
+$(python $inst_dir/build_conda_pkgs.py --help)
+
+------------------------------------------------------------------------------
+
+$(python $inst_dir/build_installers.py --help)
+
+------------------------------------------------------------------------------
+
+$($inst_dir/notarize.sh -h)
 
 EOF
 }
@@ -52,7 +68,7 @@ OIFS=$IFS
 IFS=' '
 while getopts ":hacpniC:P:N:" option; do
     case $option in
-        (h) help; exit ;;
+        (h) help | less; exit ;;
         (a) ALL=0 ;;
         (c) BUILDCONDA=0 ;;
         (p) BUILDPKG=0 ;;
@@ -73,10 +89,6 @@ if [[ -n $ALL ]]; then
     NOTARIZE=0
     INSTALL=0
 fi
-
-here=$(dirname ${BASH_SOURCE:-${(%):-%x}})
-inst_dir=$(cd $here/../spyder/installers-conda 2> /dev/null && pwd)
-export CONDA_BLD_PATH=$HOME/.conda/conda-bld
 
 # ---- Build conda packages
 if [[ -n $BUILDCONDA ]]; then

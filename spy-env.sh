@@ -23,7 +23,7 @@ Options:
   -m MAN      Environment manager. One of "miniconda3", "miniforge3", "mambaforge",
               "micromamba", or "pyenv". Default is "$MAN".
 
-  -v PYVER    Specify the Python version. Default is ${PYVER}.x.
+  -v PYVER    Specify the Python version. Default is ${PYVER_INIT}.x.
 
   NAME        Environment name
 
