@@ -2,11 +2,11 @@
 set -e
 
 here=$(dirname ${BASH_SOURCE:-${(%):-%x}})
-inst_dir=$(cd $here/../spyder/installers-conda 2> /dev/null && pwd)
+src_inst_dir=$(cd $here/../spyder/installers-conda 2> /dev/null && pwd)
 export CONDA_BLD_PATH=$HOME/.conda/conda-bld
 
 help(){ cat <<EOF
-$(basename $0) [-h] [-a | [-c] [-p] [-n] [-i]] [-C] [-P] [-N]
+$(basename $0) [options]
 
 Build conda packages, build package installer, notarize the package, and/or
 install the package for user.
@@ -37,19 +37,23 @@ Options:
 
   -N OPTIONS  Options for notarizing the package installer. This should be a
               single string of space-separated options, e.g.
-              "-v -p PASSWORD"
+              "-v -p PASSWORD". macOS only.
+
+  -I OPTIONS  Options for installing the package installer. This should be a
+              single string of space-separated options, e.g. "-bfk". .sh
+              installers only.
 
 ------------------------------------------------------------------------------
 
-$(python $inst_dir/build_conda_pkgs.py --help)
+$(python $src_inst_dir/build_conda_pkgs.py --help)
 
 ------------------------------------------------------------------------------
 
-$(python $inst_dir/build_installers.py --help)
+$(python $src_inst_dir/build_installers.py --help)
 
 ------------------------------------------------------------------------------
 
-$($inst_dir/notarize.sh -h)
+$($src_inst_dir/notarize.sh -h)
 
 EOF
 }
@@ -66,7 +70,7 @@ notarize_opts=()
 
 OIFS=$IFS
 IFS=' '
-while getopts ":hacpniC:P:N:" option; do
+while getopts ":hacpniC:P:N:I:" option; do
     case $option in
         (h) help | less; exit ;;
         (a) ALL=0 ;;
@@ -77,6 +81,7 @@ while getopts ":hacpniC:P:N:" option; do
         (C) build_conda_opts+=($OPTARG) ;;
         (P) build_pkg_opts+=($OPTARG) ;;
         (N) notarize_opts+=($OPTARG) ;;
+        (I) install_opts+=($OPTARG) ;;
     esac
 done
 shift $(($OPTIND - 1))
@@ -93,7 +98,7 @@ fi
 # ---- Build conda packages
 if [[ -n $BUILDCONDA ]]; then
     log "Building conda packages..."
-    python $inst_dir/build_conda_pkgs.py ${build_conda_opts[@]}
+    python $src_inst_dir/build_conda_pkgs.py ${build_conda_opts[@]}
     log "Building conda packages complete"
 else
     log "Not building conda packages"
@@ -103,7 +108,7 @@ fi
 if [[ (-n $BUILDPKG || -n $NOTARIZE) && $OSTYPE = "darwin"* ]]; then
     trap "security list-keychain -s login.keychain; rm -rf certificate.p12" EXIT
     source "$here/~cert/cert.sh"
-    $inst_dir/certkeychain.sh $MACOS_CERTIFICATE_PWD $MACOS_CERTIFICATE $MACOS_INSTALLER_CERTIFICATE "$here/~cert/DeveloperIDG2CA.cer"
+    $src_inst_dir/certkeychain.sh $MACOS_CERTIFICATE_PWD $MACOS_CERTIFICATE $MACOS_INSTALLER_CERTIFICATE "$here/~cert/DeveloperIDG2CA.cer"
 fi
 
 # ---- Build installer pkg
@@ -120,52 +125,55 @@ if [[ -n $BUILDPKG ]]; then
         CNAME=$(security find-identity -p codesigning -v | pcregrep -o1 "\(([0-9A-Z]+)\)")
         build_pkg_opts+=("--cert-id=$CNAME")
     fi
-    python $inst_dir/build_installers.py ${build_pkg_opts[@]}
+    python $src_inst_dir/build_installers.py ${build_pkg_opts[@]}
 else
     log "Not building installer"
 fi
 
 if [[ -n $INSTALL || -n $NOTARIZE ]]; then
-    pkg_name="$(python $inst_dir/build_installers.py --artifact-name)"
+    pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name)"
+    base_name=$(echo $pkg_name | pcregrep -io1 ".*(spyder-\d+.\d+.\d+(.dev\d+)?).*")
 fi
 
 if [[ -n $INSTALL ]]; then
     # Remove previous install
     log "Uninstall previous installation..."
     if [[ $OSTYPE = "darwin"* ]]; then
-        app_path=~/Applications/Spyder.app
-        rm -rf $app_path
-        rm -rf ~/Library/spyder-5.4.1.dev*
-        rm -rf $inst_dir/dist/pkg
+        shortcut_path=$HOME/Applications/Spyder.app
+        inst_dir=$HOME/Library/$base_name
+        rm -rf $src_inst_dir/dist/pkg
     else
-        log "Uninstall not implemented for $OSTYPE."
+        shortcut_path=$HOME/.local/share/applications/spyder.desktop
+        inst_dir=$HOME/.local/$base_name
     fi
+    rm -rf $shortcut_path
+    rm -rf $inst_dir
 
     # Run installer
     log "Installing Spyder standalone application..."
     if [[ $OSTYPE = "darwin"* ]]; then
-        # pkgutil --expand-full $inst_dir/dist/$pkg_name $inst_dir/dist/pkg
+        # pkgutil --expand-full $src_inst_dir/dist/$pkg_name $src_inst_dir/dist/pkg
         installer -dumplog -pkg $pkg_name -target CurrentUserHomeDirectory 2>&1
 
-        if [[ -e "$app_path" ]]; then
+        if [[ -e "$shortcut_path" ]]; then
             log "Spyder.app info:"
-            tree $app_path
-            cat $app_path/Contents/Info.plist
+            tree $shortcut_path
+            cat $shortcut_path/Contents/Info.plist
             echo ""
-            cat $app_path/Contents/MacOS/spyder-script
+            cat $shortcut_path/Contents/MacOS/spyder-script
             echo ""
         else
-            log "$app_path does not exist"
+            log "$shortcut_path does not exist"
         fi
     else
-        "$pkg_name"
+        "$pkg_name" ${install_opts[@]}
     fi
 else
     log "Not installing"
 fi
 
 if [[ -n $NOTARIZE && $OSTYPE = "darwin"* ]]; then
-    $inst_dir/notarize.sh ${notarize_opts[@]} $pkg_name
+    $src_inst_dir/notarize.sh ${notarize_opts[@]} $pkg_name
 else
     log "Not notarizing"
 fi
