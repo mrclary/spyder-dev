@@ -4,30 +4,61 @@ set -e
 SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
 SPYREPO=$SPYROOT/spyder
 
+TYPE="dev"
 MAN=mambaforge
 PYVER_INIT=3.10
 
 help() { cat <<EOF
 
-$(basename $0) [-h] [-m MAN] [-v PYVER] NAME [--]
+$(basename $0) [options] NAME
 
-Create spyder environment ENV with Python version PYVER and spyder dependents.
-Dependents are determined from requirements files.
-
-Spyder and core dependencies are installed in develop mode using pip's -e flag.
-If a conda environment, conda-forge channel is used.
+Create an environment for developing or building Spyder.
 
 Options:
   -h          Display this help
 
+  -t          Envrionment type. One of "dev", "mac-build", or "conda-build". Default
+              is "dev". mac-build is a pyenv environment suitable for building the
+              macOS standalone application bundle and dmg file. conda-build is a
+              conda environment suitable for building the conda-based installers.
+              dev is a conda environment for developing Spyder.
+
+  -p          Install external plugins in the environment
+
   -m MAN      Environment manager. One of "miniconda3", "miniforge3", "mambaforge",
-              "micromamba", or "pyenv". Default is "$MAN".
+              "micromamba", or "pyenv". Default is "$MAN". Only applies to dev and
+              mac-build types.
 
   -v PYVER    Specify the Python version. Default is ${PYVER_INIT}.x.
 
+  -C OPTIONS  Options passed to environment creation mechanism. Single string of
+              space-separated options.
+
+  -I OPTIONS  Options passed to Spyder installation mechanism. Single string of
+              space-separated options. Only applies to dev and mac-build types.
+
+  -U OPTIONS  Options passed to environment update mechanism. Single string of
+              space-separated options. Only applies to dev and conda-build types.
+
   NAME        Environment name
 
-  --          Additional options for create and install
+Notes:
+Following is a list of the essential commands used to build each environment type,
+indicating the context for the -C -I -U options.
+
+dev:
+    mamba create -n NAME -c conda-forge [C OPTIONS] python=PYVER
+    mamba env update -n NAME [U OPTIONS] --file <file>
+    mamba run -n NAME --no-capture-output [I OPTIONS] python $SPYREPO/install_dev_repos.py
+
+mac-build:
+    pyenv virtualenv [C OPTIONS]
+    python -m pip install [I OPTIONS] -f <file> -f <file> ... -e <spyder-repo>
+    python <spyder-repo>/install_dev_repos.py --no-install spyder
+
+conda-build:
+    mamba create -n NAME -c conda-forge [C OPTIONS] python=PYVER
+    mamba env update -n NAME [U OPTIONS] --file <spyder-repo>/installers-conda/build-environment.yml
 
 EOF
 }
@@ -38,14 +69,33 @@ log(){
     echo "$(date "+%Y-%m-%d %H:%M:%S") [$level] [spy-env] -> $@" 1>&3
 }
 
-while getopts ":hm:v:" option; do
+create_opts=()
+install_opts=()
+update_opts=()
+
+OIFS=$IFS
+IFS=' '
+while getopts ":ht:pm:v:C:I:U:" option; do
     case $option in
         (h) help; exit ;;
+        (t) case $OPTARG in
+            (dev|mac-build|conda-build)
+                TYPE=$OPTARG ;;
+            (*)
+                log "Unrecognized value for TYPE: $OPTARG"
+                help; exit 1 ;;
+            esac ;;
+        (p) PLUGINS=1 ;;
         (m) MAN=$OPTARG ;;
         (v) PYVER_INIT=$OPTARG ;;
+        (C) create_opts+=($OPTARG) ;;
+        (I) install_opts+=($OPTARG) ;;
+        (U) update_opts+=($OPTARG) ;;
     esac
 done
 shift $(($OPTIND - 1))
+IFS=$OIFS
+unset OIFS
 
 if [[ $# = 0 ]]; then
     log "Please provide environment name"
@@ -54,20 +104,9 @@ fi
 
 NAME=$1; shift
 
-# Remaining arguments passed to create and install
-create_opts=()
-run_opts=()
-for opt in $@; do
-    create_opts+=("$opt")
-    case $opt in
-        (-v|--verbose)
-            run_opts+=("$opt") ;;
-        (-d|--dry-run)
-            dry_run=0 ;;
-    esac
-done
+if [[ "$TYPE" = "mac-build" ]]; then
+    log "Building macOS standalone build environment..."
 
-if [[ "$MAN" = "pyenv" ]]; then
     if [[ -z "$(brew list --versions tcl-tk)" ]]; then
         log "Installing Tcl/Tk..."
         brew install tcl-tk
@@ -95,8 +134,7 @@ if [[ "$MAN" = "pyenv" ]]; then
     fi
 
     log "Building $MAN '$NAME' environment..."
-    create_opts+=("$PYVER" "$NAME")
-    pyenv virtualenv ${create_opts[@]}
+    pyenv virtualenv ${create_opts[@]} $PYVER $NAME
 
     source $HOME/.pyenv/versions/$NAME/bin/activate
 
@@ -106,10 +144,10 @@ if [[ "$MAN" = "pyenv" ]]; then
     INSTALLDIR=$SPYREPO/installers/macOS
     SPEC=("importlib-metadata")
     for f in $(ls $INSTALLDIR); do
-        [[ "$f" = req-* ]] && SPEC+=("-r" "$INSTALLDIR/$f") || true
+        [[ "$f" = "req-plugins.txt" && -z $PLUGINS ]] && continue
+        [[ "$f" = req-* ]] && SPEC+=("-r" "$INSTALLDIR/$f")
     done
-    install_opts=("${run_opts[@]}" "${SPEC[@]}" "-e" "$SPYREPO")
-    python -m pip install ${install_opts[@]}
+    python -m pip install ${install_opts[@]} ${SPEC[@]} -e $SPYREPO
     python $SPYREPO/install_dev_repos.py --no-install spyder
 else
     # Determine conda flavor package manager command
@@ -137,35 +175,50 @@ else
         fi
     done
 
-    log "Building $MAN '$NAME' environment..."
-    create_opts=("-n" "$NAME" "${create_opts[@]}")
-    create_opts+=("-c" "conda-forge" "python=$PYVER_INIT")
-    $cmd create ${create_opts[@]}
-    update_opts=("env" "update" "-n" "$NAME")
-    $cmd ${update_opts[@]} --file $SPYREPO/requirements/main.yml
-    if [[ "$OSTYPE" = "darwin"* ]]; then
-        $cmd ${update_opts[@]} --file $SPYREPO/requirements/macos.yml
-    else
-        $cmd ${update_opts[@]} --file $SPYREPO/requirements/linux.yml
-    fi
-    $cmd ${update_opts[@]} --file $SPYREPO/requirements/tests.yml
-    $cmd --no-banner update -n $NAME -c conda-forge --file $SPYROOT/spyder-dev/plugins.txt
+    log "Creating $MAN '$NAME' $TYPE environment..."
+    create_opts=("-n" "$NAME" "-c" "conda-forge" "${create_opts[@]}")
+    $cmd create ${create_opts[@]} python=$PYVER_INIT
+    update_opts=("env" "update" "-n" "$NAME" "${update_opts[@]}")
 
-    log "Installing spyder..."
-    run_opts+=("--no-capture-output")
-    if [[ "$MAN" = *"mamba"* ]]; then
-        run_opts+=("--no-banner")
+    if [[ $TYPE == "dev" ]]; then
+        # Developer environment
+        log "Installing main requirements..."
+        $cmd ${update_opts[@]} --file $SPYREPO/requirements/main.yml
+
+        log "Installing platform-specific requirements..."
+        if [[ "$OSTYPE" = "darwin"* ]]; then
+            $cmd ${update_opts[@]} --file $SPYREPO/requirements/macos.yml
+        else
+            $cmd ${update_opts[@]} --file $SPYREPO/requirements/linux.yml
+        fi
+
+        log "Installing testing requirements..."
+        $cmd ${update_opts[@]} --file $SPYREPO/requirements/tests.yml
+
+        if [[ -n $PLUGINS ]]; then
+            log "Installing external plugins..."
+            $cmd update -n $NAME -c conda-forge --file $SPYROOT/spyder-dev/plugins.txt
+        fi
+
+        log "Installing spyder and external_deps..."
+        install_opts=("-n" "$NAME" "--no-capture-output" "${install_opts[@]}")
+        $cmd run ${install_opts[@]} python $SPYREPO/install_dev_repos.py
+    else
+        # Conda-based installer build environment
+        log "Installing conda-based installer build requirements..."
+        $cmd ${update_opts[@]} --file $SPYREPO/installers-conda/build-environment.yml
     fi
-    $cmd run ${run_opts[@]} -n $NAME python $SPYREPO/install_dev_repos.py
 fi
 
-log "Updating micromamba in the spyder repo..."
-cd $SPYREPO/spyder
-umamba_url=https://micro.mamba.pm/api/micromamba
-arch_=$(arch)
-[[ "$arch_" = "i386" || "$arch_" = "x86_64" ]] && arch_=64
-if [[ "$OSTYPE" = "darwin"* ]]; then
-    curl -Ls $umamba_url/osx-$arch_/latest | tar -xvj bin/micromamba
-else
-    wget -qO- $umamba_url/linux-$arch_/latest | tar -xvj bin/micromamba
+if [[ $TYPE != "conda-build" ]]; then
+    log "Updating micromamba in the spyder repo..."
+    cd $SPYREPO/spyder
+    umamba_url=https://micro.mamba.pm/api/micromamba
+    arch_=$(arch)
+    [[ "$arch_" = "i386" || "$arch_" = "x86_64" ]] && arch_=64
+    if [[ "$OSTYPE" = "darwin"* ]]; then
+        curl -Ls $umamba_url/osx-$arch_/latest | tar -xvj bin/micromamba
+    else
+        wget -qO- $umamba_url/linux-$arch_/latest | tar -xvj bin/micromamba
+    fi
 fi
