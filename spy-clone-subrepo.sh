@@ -72,12 +72,6 @@ case $REPO in
         local=$ROOT/python-lsp-server
         : ${branch:=develop}
         ;;
-    (qdarkstyle)
-        upstream=remote=https://github.com/ColinDuquesnoy/QDarkStyleSheet.git
-        fork=remote=https://github.com/mrclary/QDarkStyleSheet.git
-        local=$ROOT/qdarkstyle
-        : ${branch:=develop}
-        ;;
     (qtconsole)
         upstream=https://github.com/jupyter/qtconsole.git
         fork=https://github.com/mrclary/qtconsole.git
