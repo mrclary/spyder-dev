@@ -24,9 +24,9 @@ done
 shift $(($OPTIND - 1))
 
 if [[ -z $unset_var ]]; then
-    SPYDEV=$(dirname ${BASH_SOURCE:-${(%):-%x}})
+    export SPYDEV=$(dirname ${BASH_SOURCE:-${(%):-%x}})
     ROOT=$(cd $SPYDEV/../ 2> /dev/null && pwd -P)
-    SPYREPO=$ROOT/spyder
+    export SPYREPO=$ROOT/spyder
     EXTDEPS=$SPYREPO/external-deps
 
     export SPYDERAPP=$REPOS/Spyder-IDE/spyder/installers/macOS/dist/Spyder.app
@@ -37,8 +37,6 @@ if [[ -z $unset_var ]]; then
 #     export SPYDER_IS_BOOTSTRAP=False
     export SPYEXECUTABLEPATH=$SPYDERAPP/Contents/MacOS/Spyder
 
-    export ROOT_PREFIX=$HOME/Library/spyder-5.4.0
-    export PREFIX=$ROOT_PREFIX/envs/spyder-5.4.0
     export CONDA_BLD_PATH=$HOME/.conda/conda-bld
 
     alias spyderapp="$SPYEXECUTABLEPATH"
