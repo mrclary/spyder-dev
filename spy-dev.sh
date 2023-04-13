@@ -50,6 +50,7 @@ if [[ -z $unset_var ]]; then
     alias spy-clone-subrepo="$SPYDEV/spy-clone-subrepo.sh"
     alias spy-codesign="$ROOT/spyder/installers/macOS/codesign.sh"
     alias spy-env="$SPYDEV/spy-env.sh"
+    alias spy-install-spyder-kernels="$SPYDEV/spy-install-spyder-kernels.sh"
     alias spy-install-subrepo="$SPYDEV/spy-install-subrepo.sh"
     alias spy-install-subrepos="$SPYDEV/spy-install-subrepos.sh"
     alias spy-menuinst="$SPYDEV/spy-menuinst.sh"
