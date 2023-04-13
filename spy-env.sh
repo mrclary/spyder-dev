@@ -105,6 +105,7 @@ fi
 NAME=$1; shift
 
 if [[ "$TYPE" = "mac-build" ]]; then
+    MAN="pyenv"
     log "Building macOS standalone build environment..."
 
     if [[ -z "$(brew list --versions tcl-tk)" ]]; then
