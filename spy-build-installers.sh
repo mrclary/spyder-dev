@@ -122,7 +122,7 @@ if [[ -n $BUILDPKG ]]; then
             mv $_codesign ${_codesign}.bak
         fi
 
-        CNAME=$(security find-identity -p codesigning -v | pcregrep -o1 "\(([0-9A-Z]+)\)")
+        CNAME=$(security find-identity -p codesigning -v | pcre2grep -o1 "\(([0-9A-Z]+)\)")
         build_pkg_opts+=("--cert-id=$CNAME")
     fi
     python $src_inst_dir/build_installers.py ${build_pkg_opts[@]}
@@ -132,7 +132,7 @@ fi
 
 if [[ -n $INSTALL || -n $NOTARIZE ]]; then
     pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name)"
-    base_name=$(echo $pkg_name | pcregrep -io1 ".*(spyder-\d+.\d+.\d+(.dev\d+)?).*")
+    base_name=$(echo $pkg_name | pcre2grep -io1 ".*(spyder-\d+.\d+.\d+(.dev\d+)?).*")
 fi
 
 if [[ -n $INSTALL ]]; then
