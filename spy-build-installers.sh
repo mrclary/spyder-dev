@@ -3,7 +3,7 @@ set -e
 
 script_path=${BASH_SOURCE:-${(%):-%x}}
 here=$(dirname $script_path)
-src_inst_dir=$(cd $here/../spyder/installers-conda 2> /dev/null && pwd)
+src_inst_dir=$(realpath $here/../spyder/installers-conda)
 
 if [[ -z $CONDA_PREFIX || -z $(which constructor) ]]; then
     echo "Activate a conda environment with constructor installed to use $(basename $script_path)"

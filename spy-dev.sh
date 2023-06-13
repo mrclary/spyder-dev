@@ -25,7 +25,7 @@ shift $(($OPTIND - 1))
 
 if [[ -z $unset_var ]]; then
     export SPYDEV=$(dirname ${BASH_SOURCE:-${(%):-%x}})
-    ROOT=$(cd $SPYDEV/../ 2> /dev/null && pwd -P)
+    ROOT=$(realpath $SPYDEV/../)
     export SPYREPO=$ROOT/spyder
     EXTDEPS=$SPYREPO/external-deps
 

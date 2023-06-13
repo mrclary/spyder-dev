@@ -16,7 +16,7 @@ log(){
     echo "$(date "+%Y-%m-%d %H:%M:%S") [$level] [install-subrepos] -> $@" 1>&3
 }
 
-SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
+SPYROOT=$(realpath ${BASH_SOURCE:-${(%):-%x}}/../../)
 SPYREPO=$SPYROOT/spyder
 EXTDEPS=$SPYREPO/external-deps
 
