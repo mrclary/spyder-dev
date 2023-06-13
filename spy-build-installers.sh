@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-here=$(dirname ${BASH_SOURCE:-${(%):-%x}})
+script_path=${BASH_SOURCE:-${(%):-%x}}
+here=$(dirname $script_path)
 src_inst_dir=$(cd $here/../spyder/installers-conda 2> /dev/null && pwd)
-export CONDA_BLD_PATH=$HOME/.conda/conda-bld
+
+if [[ -z $CONDA_PREFIX || -z $(which constructor) ]]; then
+    echo "Activate a conda environment with constructor installed to use $(basename $script_path)"
+    exit 1
+fi
 
 help(){ cat <<EOF
-$(basename $0) [options]
+$(basename $script_path) [options]
 
 Build conda packages, build package installer, notarize the package, and/or
 install the package for user.
@@ -96,6 +101,8 @@ if [[ -n $ALL ]]; then
 fi
 
 # ---- Build conda packages
+export CONDA_BLD_PATH=$HOME/.conda/conda-bld
+
 if [[ -n $BUILDCONDA ]]; then
     log "Building conda packages..."
     python $src_inst_dir/build_conda_pkgs.py ${build_conda_opts[@]}
