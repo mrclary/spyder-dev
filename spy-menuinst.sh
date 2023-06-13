@@ -3,7 +3,7 @@ set -e
 
 ver=$1
 root_prefix=$HOME/Library/spyder-$ver
-prefix=$root_prefix/envs/spyder-$ver
+prefix=$root_prefix/envs/spyder-runtime
 menu=$prefix/Menu/spyder-menu.json
 if [[ $OSTYPE = "darwin"* ]]; then
     shortcut=$HOME/Applications/Spyder.app

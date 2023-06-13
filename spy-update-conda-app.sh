@@ -3,9 +3,10 @@ set -e
 
 ver=$1
 if [[ "$OSTYPE" = "darwin"* ]]; then
-    PREFIX=$HOME/Library/spyder-${ver}/envs/spyder-${ver}
+    ROOT_PREFIX=$HOME/Library/spyder-${ver}
 else
-    PREFIX=$HOME/.local/Spyder-${ver}/envs/spyder-${ver}
+    ROOT_PREFIX=$HOME/.local/spyder-${ver}
 fi
+PREFIX=${ROOT_PREFIX}/envs/spyder-runtime
 
 mamba run --live-stream -p $PREFIX python $SPYREPO/install_dev_repos.py
