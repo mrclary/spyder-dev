@@ -8,7 +8,7 @@ set -e
 #  - re-run this script and commit the changes to the patch
 #    file on the 5.x branch
 
-SPYROOT=$(realpath ${BASH_SOURCE:-${(%):-%x}}/../../)
+SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
 SPYREPO=$SPYROOT/spyder
 
 BRANCH=upstream/5.x

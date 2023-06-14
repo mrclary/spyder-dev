@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-SPYROOT=$(realpath ${BASH_SOURCE:-${(%):-%x}}/../../)
+SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
 ROOT=$(dirname $SPYROOT)
 SPYREPO=$SPYROOT/spyder
 EXTDEPS=$SPYREPO/external-deps
