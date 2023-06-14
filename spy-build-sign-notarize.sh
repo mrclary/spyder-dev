@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ && pwd -P)
+SPYROOT=$(dirname $(dirname ${BASH_SOURCE:-${(%):-%x}}))
 
 build_opts=()
 sign_opts=()

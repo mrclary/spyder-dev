@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-SPYROOT=$(cd $(dirname $BASH_SOURCE)/../ 2> /dev/null && pwd -P)
+SPYROOT=$(dirname $(dirname ${BASH_SOURCE:-${(%):-%x}}))
 SPYREPO=$SPYROOT/spyder
 
 TYPE="dev"
