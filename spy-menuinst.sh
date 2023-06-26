@@ -1,7 +1,51 @@
 #!/usr/bin/env bash
 set -e
 
+help() { cat <<EOF
+
+$(basename $0) [options] VER
+
+Install and/or uninstall Spyder application launch shortcut.
+
+Options:
+  -h          Display this help
+
+  -u          Uninstall the shortcut. If neither -u nor -i are specified,
+              the shortcut will be uninstalled then installed.
+
+  -i          Install the shortcut. If neither -u nor -i are specified,
+              the shortcut will be uninstalled then installed.
+
+  VER         Base version to install/uninstall, e.g. 6
+
+EOF
+}
+
+# exec 3>&1  # Additional output descriptor for logging
+log(){
+    level="INFO"
+    echo "$(date "+%Y-%m-%d %H:%M:%S") [$level] [spy-menuinst] -> $@" #1>&3
+}
+
+UNINSTALL=0  # Default to uninstall
+INSTALL=0    # Default to install
+
+while getopts ":huiv:" option; do
+    case $option in
+        (h) help; exit ;;
+        (u) UNINSTALL=0 && unset INSTALL ;;
+        (i) unset UNINSTALL && INSTALL=0 ;;
+    esac
+done
+shift $(($OPTIND - 1))
 ver=$1
+
+if [[ -z "$ver" ]]; then
+    log "Please provide version."
+    help
+    exit 1
+fi
+
 root_prefix=$HOME/Library/spyder-$ver
 prefix=$root_prefix/envs/spyder-runtime
 menu=$prefix/Menu/spyder-menu.json
@@ -11,43 +55,54 @@ else
     shortcut=$HOME/.local/share/applicatons/spyder_spyder.desktop
 fi
 
-if [[ ! -e $menu ]]; then
-    echo "Error: $menu not found"
+if [[ ! -e "$menu" ]]; then
+    log "Error: $menu not found"
     exit 1
 fi
 
 source $root_prefix/bin/activate base
 
-if [[ -e $shortcut && $OSTYPE = "darwin"* ]]; then
-    curr_ver=$(plutil -extract CFshortcutShortVersionString raw "$shortcut/Contents/Info.plist")
-    echo "Uninstalling Spyder.app bundle version ${curr_ver}..."
-    python -c "import menuinst; menuinst.api.remove('$menu')"
-fi
-
-if [[ $OSTYPE = "darwin"* ]]; then
-    echo "Installing Spyder.app bundle..."
+if [[ -n "$UNINSTALL" ]]; then
+    if [[ -e "$shortcut" ]]; then
+        if [[ "$OSTYPE" = "darwin"* ]]; then
+            curr_ver=$(plutil -extract CFBundleShortVersionString raw "$shortcut/Contents/Info.plist")
+            log "Uninstalling Spyder.app bundle version ${curr_ver}..."
+        else
+            log "Uninstalling Spyder shortcut..."
+        fi
+        python -c "import menuinst; menuinst.api.remove('$menu')"
+    else
+        log "$shortcut already uninstalled."
+    fi
 else
-    echo "Installing Spyder shortcut..."
-fi
-python -c "import menuinst; menuinst.api.install('$menu', target_prefix='$prefix')"
-
-if [[ ! -e $shortcut ]]; then
-    echo "Error: $shortcut not created"
-    exit 1
+    log "Skip uninstall."
 fi
 
-if [[ $OSTYPE = "darwin"* ]]; then
-    echo "$shortcut structure:"
-    tree $shortcut
-    echo ""
-    echo "$shortcut/Contents/Info.plist contents:"
-    cat $shortcut/Contents/Info.plist
-    echo ""
-    echo "$shortcut/Contents/MacOS/spyder-script contents:"
-    cat $shortcut/Contents/MacOS/spyder-script
-    echo ""
+if [[ -n "$INSTALL" ]]; then
+    if [[ "$OSTYPE" = "darwin"* ]]; then
+        log "Installing Spyder.app bundle..."
+    else
+        log "Installing Spyder shortcut..."
+    fi
+    python -c "import menuinst; menuinst.api.install('$menu', target_prefix='$prefix')"
+
+    if [[ ! -e "$shortcut" ]]; then
+        log "Error: $shortcut not created"
+        exit 1
+    fi
+
+    if [[ "$OSTYPE" = "darwin"* ]]; then
+        log "$shortcut structure:"
+        tree $shortcut
+        log "$shortcut/Contents/Info.plist contents:"
+        cat $shortcut/Contents/Info.plist
+        log "$shortcut/Contents/MacOS/spyder-script contents:"
+        cat $shortcut/Contents/MacOS/spyder-script
+        echo ""
+    else
+        log "Contents of ${shortcut}:"
+        cat $shortcut
+    fi
 else
-    echo "Contents of ${shortcut}:"
-    cat $shortcut
-    echo ""
+    log "Skip install."
 fi
