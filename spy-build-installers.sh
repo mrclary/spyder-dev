@@ -101,7 +101,6 @@ if [[ -n $ALL ]]; then
 fi
 
 pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name)"
-base_name=$(echo $pkg_name | pcre2grep -io1 ".*(spyder-\d+.\d+.\d+(.dev\d+)?).*")
 
 # ---- Build conda packages
 export CONDA_BLD_PATH=$HOME/.conda/conda-bld
