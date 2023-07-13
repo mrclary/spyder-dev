@@ -100,6 +100,9 @@ if [[ -n $ALL ]]; then
     INSTALL=0
 fi
 
+pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name)"
+base_name=$(echo $pkg_name | pcre2grep -io1 ".*(spyder-\d+.\d+.\d+(.dev\d+)?).*")
+
 # ---- Build conda packages
 export CONDA_BLD_PATH=$HOME/.conda/conda-bld
 
@@ -135,11 +138,6 @@ if [[ -n $BUILDPKG ]]; then
     python $src_inst_dir/build_installers.py ${build_pkg_opts[@]}
 else
     log "Not building installer"
-fi
-
-if [[ -n $INSTALL || -n $NOTARIZE ]]; then
-    pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name)"
-    base_name=$(echo $pkg_name | pcre2grep -io1 ".*(spyder-\d+.\d+.\d+(.dev\d+)?).*")
 fi
 
 if [[ -n $INSTALL ]]; then
