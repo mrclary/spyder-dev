@@ -144,21 +144,23 @@ if [[ -n $INSTALL ]]; then
     # Remove previous install
     log "Uninstall previous installation..."
     if [[ $OSTYPE = "darwin"* ]]; then
+        dest_root=$HOME/Library
         shortcut_path=$HOME/Applications/Spyder.app
-        inst_dir=$HOME/Library/$base_name
-        rm -rf $src_inst_dir/dist/pkg
     else
-        shortcut_path=$HOME/.local/share/applications/spyder.desktop
-        inst_dir=$HOME/.local/$base_name
+        dest_root=$HOME/.local
+        shortcut_path=$HOME/.local/share/applications/spyder_spyder.desktop
     fi
-    rm -rf $shortcut_path
-    rm -rf $inst_dir
+    u_spy_exe=$dest_root/spyder-*/uninstall-spyder.sh
+    u_spy_exe=$(dirname $u_spy_exe)/$(basename $u_spy_exe)
+    [[ -f $u_spy_exe ]] && $u_spy_exe -f
 
     # Run installer
-    log "Installing Spyder standalone application..."
+    log "Installing Spyder..."
     if [[ $OSTYPE = "darwin"* ]]; then
-        # pkgutil --expand-full $src_inst_dir/dist/$pkg_name $src_inst_dir/dist/pkg
-        installer -dumplog -pkg $pkg_name -target CurrentUserHomeDirectory 2>&1
+        tail -F /var/log/install.log &
+        trap "kill -s TERM $!" EXIT
+        export CONDA_VERBOSITY=3
+        installer -pkg $pkg_name -target CurrentUserHomeDirectory
 
         if [[ -e "$shortcut_path" ]]; then
             log "Spyder.app info:"
