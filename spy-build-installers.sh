@@ -72,6 +72,7 @@ log(){
 build_conda_opts=()
 build_pkg_opts=()
 notarize_opts=()
+install_opts=()
 
 OIFS=$IFS
 IFS=' '
@@ -140,8 +141,6 @@ else
 fi
 
 if [[ -n $INSTALL ]]; then
-    # Remove previous install
-    log "Uninstall previous installation..."
     if [[ $OSTYPE = "darwin"* ]]; then
         dest_root=$HOME/Library
         shortcut_path=$HOME/Applications/Spyder.app
@@ -149,30 +148,43 @@ if [[ -n $INSTALL ]]; then
         dest_root=$HOME/.local
         shortcut_path=$HOME/.local/share/applications/spyder_spyder.desktop
     fi
+
+    # Remove previous install
+    log "Uninstall previous installation..."
     u_spy_exe=$dest_root/spyder-*/uninstall-spyder.sh
     u_spy_exe=$(dirname $u_spy_exe)/$(basename $u_spy_exe)
     [[ -f $u_spy_exe ]] && $u_spy_exe -f
 
     # Run installer
     log "Installing Spyder..."
-    if [[ $OSTYPE = "darwin"* ]]; then
+    if [[ "$pkg_name" =~ ^.*\.pkg$ ]]; then
         tail -F /var/log/install.log &
         trap "kill -s TERM $!" EXIT
-        export CONDA_VERBOSITY=3
         installer -pkg $pkg_name -target CurrentUserHomeDirectory
-
-        if [[ -e "$shortcut_path" ]]; then
-            log "Spyder.app info:"
-            tree $shortcut_path
-            cat $shortcut_path/Contents/Info.plist
-            echo ""
-            cat $shortcut_path/Contents/MacOS/spyder-script
-            echo ""
-        else
-            log "$shortcut_path does not exist"
-        fi
     else
+        # export CONDA_VERBOSITY=3
         "$pkg_name" ${install_opts[@]}
+    fi
+
+    # Show install results
+    log "Install info:"
+    echo -e "Contents of" $dest_root/spyder-* :
+    ls -al $dest_root/spyder-*
+    echo -e "\nContents of" $dest_root/spyder-*/uninstall-spyder.sh :
+    cat $dest_root/spyder-*/uninstall-spyder.sh
+    echo ""
+    if [[ "$OSTYPE" = "darwin"* && -e "$shortcut_path" ]]; then
+        tree $shortcut_path
+        echo ""
+        cat $shortcut_path/Contents/Info.plist
+        echo ""
+        cat $shortcut_path/Contents/MacOS/spyder-script
+        echo ""
+    elif [[ "$OSTYPE" = "linux" && -e "$shortcut_path" ]]; then
+        cat $shortcut_path
+        echo ""
+    else
+        log "$shortcut_path does not exist"
     fi
 else
     log "Not installing"
