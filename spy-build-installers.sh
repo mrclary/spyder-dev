@@ -101,8 +101,6 @@ if [[ -n $ALL ]]; then
     INSTALL=0
 fi
 
-pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name)"
-
 # ---- Build conda packages
 export CONDA_BLD_PATH=$HOME/.conda/conda-bld
 
@@ -127,18 +125,18 @@ if [[ (-n $BUILDPKG || -n $NOTARIZE) && $OSTYPE = "darwin"* ]]; then
     source "$here/~cert/cert.sh"
     $src_inst_dir/certkeychain.sh $MACOS_CERTIFICATE_PWD $MACOS_CERTIFICATE $MACOS_INSTALLER_CERTIFICATE "$here/~cert/DeveloperIDG2CA.cer"
     CNAME=$(security find-identity -p codesigning -v | pcre2grep -o1 "\(([0-9A-Z]+)\)")
+    [[ -n "$CNAME" ]] && build_pkg_opts+=("--cert-id=$CNAME")
 fi
 
 # ---- Build installer pkg
 if [[ -n $BUILDPKG ]]; then
     log "Building installer..."
-    if [[ $OSTYPE = "darwin"* && -n "$CNAME" ]]; then
-        build_pkg_opts+=("--cert-id=$CNAME")
-    fi
     python $src_inst_dir/build_installers.py ${build_pkg_opts[@]}
 else
     log "Not building installer"
 fi
+
+pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name ${build_pkg_opts[@]})"
 
 if [[ -n $INSTALL ]]; then
     if [[ $OSTYPE = "darwin"* ]]; then
