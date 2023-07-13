@@ -46,14 +46,15 @@ if [[ -z "$ver" ]]; then
     exit 1
 fi
 
-root_prefix=$HOME/Library/spyder-$ver
-prefix=$root_prefix/envs/spyder-runtime
-menu=$prefix/Menu/spyder-menu.json
-if [[ $OSTYPE = "darwin"* ]]; then
+if [[ "$OSTYPE" = "darwin"* ]]; then
+    root_prefix=$HOME/Library/spyder-$ver
     shortcut=$HOME/Applications/Spyder.app
 else
+    root_prefix=$HOME/.local/spyder-$ver
     shortcut=$HOME/.local/share/applicatons/spyder_spyder.desktop
 fi
+prefix=$root_prefix/envs/spyder-runtime
+menu=$prefix/Menu/spyder-menu.json
 
 if [[ ! -e "$menu" ]]; then
     log "Error: $menu not found"
