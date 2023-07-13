@@ -84,7 +84,7 @@ if [[ -n "$INSTALL" ]]; then
     else
         log "Installing Spyder shortcut..."
     fi
-    python -c "import menuinst; menuinst.api.install('$menu', target_prefix='$prefix')"
+    python -c "import menuinst; menuinst.api.install('$menu', base_prefix='$root_prefix', target_prefix='$prefix')"
 
     if [[ ! -e "$shortcut" ]]; then
         log "Error: $shortcut not created"
