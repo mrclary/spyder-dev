@@ -116,23 +116,23 @@ fi
 
 # ---- Build keychain
 if [[ (-n $BUILDPKG || -n $NOTARIZE) && $OSTYPE = "darwin"* ]]; then
+    _codesign=$(which codesign)
+    if [[ $_codesign =~ ${CONDA_PREFIX}.* ]]; then
+        # Find correct codesign
+        log "Moving $_codesign..."
+        mv $_codesign ${_codesign}.bak
+    fi
+
     trap "security list-keychain -s login.keychain; rm -rf certificate.p12" EXIT
     source "$here/~cert/cert.sh"
     $src_inst_dir/certkeychain.sh $MACOS_CERTIFICATE_PWD $MACOS_CERTIFICATE $MACOS_INSTALLER_CERTIFICATE "$here/~cert/DeveloperIDG2CA.cer"
+    CNAME=$(security find-identity -p codesigning -v | pcre2grep -o1 "\(([0-9A-Z]+)\)")
 fi
 
 # ---- Build installer pkg
 if [[ -n $BUILDPKG ]]; then
     log "Building installer..."
-    if [[ $OSTYPE = "darwin"* ]]; then
-        _codesign=$(which codesign)
-        if [[ $_codesign =~ ${CONDA_PREFIX}.* ]]; then
-            # Find correct codesign
-            log "Moving $_codesign..."
-            mv $_codesign ${_codesign}.bak
-        fi
-
-        CNAME=$(security find-identity -p codesigning -v | pcre2grep -o1 "\(([0-9A-Z]+)\)")
+    if [[ $OSTYPE = "darwin"* && -n "$CNAME" ]]; then
         build_pkg_opts+=("--cert-id=$CNAME")
     fi
     python $src_inst_dir/build_installers.py ${build_pkg_opts[@]}
