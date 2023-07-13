@@ -56,6 +56,7 @@ if [[ -z $unset_var ]]; then
     alias spy-menuinst="$SPYDEV/spy-menuinst.sh"
     alias spy-notarize="$ROOT/spyder/installers/macOS/notarize.sh"
     alias spy-update-conda-app="$SPYDEV/spy-update-conda-app.sh"
+    alias spy-dev-spyder="mamba run --live-stream -n spy-dev python $SPYREPO/bootstrap.py"
 else
     raw_env=($(/usr/bin/env -i bash -c "source $BASH_SOURCE; compgen -va"))
     new_env=($(/usr/bin/env -i bash -c "source $BASH_SOURCE; spy-var; compgen -va"))
