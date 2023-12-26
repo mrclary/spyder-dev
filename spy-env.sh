@@ -177,7 +177,7 @@ else
     done
 
     log "Creating $MAN '$NAME' $TYPE environment..."
-    create_opts=("-n" "$NAME" "-c" "conda-forge" "${create_opts[@]}")
+    create_opts=("-n" "$NAME" "-c" "conda-forge" "--override" "${create_opts[@]}")
     $cmd create ${create_opts[@]} python=$PYVER_INIT
     update_opts=("env" "update" "-n" "$NAME" "${update_opts[@]}")
 
@@ -207,7 +207,11 @@ else
     else
         # Conda-based installer build environment
         log "Installing conda-based installer build requirements..."
-        $cmd ${update_opts[@]} --file $SPYREPO/installers-conda/build-environment.yml
+        # To ensure correct channel priority, it must be set at the environment rc level
+        # and env update must be run from that environment.
+        cmd_run="$cmd run -n $NAME --live-stream"
+        $cmd_run conda config --env --set channel_priority flexible
+        $cmd_run $cmd ${update_opts[@]} --file $SPYREPO/installers-conda/build-environment.yml
     fi
 fi
 
