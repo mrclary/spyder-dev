@@ -102,8 +102,6 @@ if [[ -n $ALL ]]; then
 fi
 
 # ---- Build conda packages
-export CONDA_BLD_PATH=$HOME/.conda/conda-bld
-
 if [[ -n $BUILDCONDA ]]; then
     log "Building conda packages..."
     python $src_inst_dir/build_conda_pkgs.py ${build_conda_opts[@]}

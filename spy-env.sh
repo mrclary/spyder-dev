@@ -75,7 +75,7 @@ update_opts=()
 
 OIFS=$IFS
 IFS=' '
-while getopts ":ht:pm:v:C:I:U:" option; do
+while getopts ":ht:pv:n:C:I:U:" option; do
     case $option in
         (h) help; exit ;;
         (t) case $OPTARG in
@@ -86,8 +86,8 @@ while getopts ":ht:pm:v:C:I:U:" option; do
                 help; exit 1 ;;
             esac ;;
         (p) PLUGINS=1 ;;
-        (m) MAN=$OPTARG ;;
         (v) PYVER_INIT=$OPTARG ;;
+        (n) NAME=$OPTARG ;;
         (C) create_opts+=($OPTARG) ;;
         (I) install_opts+=($OPTARG) ;;
         (U) update_opts+=($OPTARG) ;;
@@ -97,16 +97,10 @@ shift $(($OPTIND - 1))
 IFS=$OIFS
 unset OIFS
 
-if [[ $# = 0 ]]; then
-    log "Please provide environment name"
-    exit 1
-fi
-
-NAME=$1; shift
-
 if [[ "$TYPE" = "mac-build" ]]; then
-    MAN="pyenv"
-    log "Building macOS standalone build environment..."
+    NAME=${NAME:-spy-build}
+
+    log "Building '$NAME' macOS standalone build environment..."
 
     if [[ -z "$(brew list --versions tcl-tk)" ]]; then
         log "Installing Tcl/Tk..."
@@ -134,7 +128,7 @@ if [[ "$TYPE" = "mac-build" ]]; then
         log "Python $PYVER already installed."
     fi
 
-    log "Building $MAN '$NAME' environment..."
+    log "Building '$NAME' pyenv environment..."
     pyenv virtualenv ${create_opts[@]} $PYVER $NAME
 
     source $HOME/.pyenv/versions/$NAME/bin/activate
@@ -151,32 +145,14 @@ if [[ "$TYPE" = "mac-build" ]]; then
     python -m pip install ${install_opts[@]} ${SPEC[@]} -e $SPYREPO
     python $SPYREPO/install_dev_repos.py --no-install spyder
 else
-    # Determine conda flavor package manager command
-    while [[ -z "$cmd" ]]; do
-        case $MAN in
-            (mambaforge)
-                cmd="$(which mamba)" ;;
-            (micromamba)
-                cmd="$MAMBA_EXE" ;;
-            (miniconda3|miniforge3)
-                cmd="$(which conda)" ;;
-            (*)
-                log "Unrecognized environment manager '$MAN'"
-                exit 1 ;;
-        esac
+    if [[ -z "$NAME" ]]; then
+        [[ "$TYPE" == "dev" ]] && NAME=spy-dev || NAME=spy-inst
+    fi
+    log "Creating conda '$NAME' $TYPE environment..."
 
-        if [[ ! -e "$cmd" || "$cmd" != *"$MAN"* ]]; then
-            if [[ "$MAN" = "miniconda3" ]]; then
-                log "$MAN not available"; exit 1
-            else
-                unset cmd
-                log "$MAN not available; falling back to miniconda3"
-                MAN=miniconda3
-            fi
-        fi
-    done
+    CONDA_CHANNEL_PRIORITY=flexible
+    cmd=$(which mamba)
 
-    log "Creating $MAN '$NAME' $TYPE environment..."
     create_opts=("-n" "$NAME" "-c" "conda-forge" "--override" "${create_opts[@]}")
     $cmd create ${create_opts[@]} python=$PYVER_INIT
     update_opts=("env" "update" "-n" "$NAME" "${update_opts[@]}")
@@ -202,28 +178,11 @@ else
         fi
 
         log "Installing spyder and external_deps..."
-        install_opts=("-n" "$NAME" "--no-capture-output" "${install_opts[@]}")
+        install_opts=("-n" "$NAME" "--live-stream" "${install_opts[@]}")
         $cmd run ${install_opts[@]} python $SPYREPO/install_dev_repos.py
     else
         # Conda-based installer build environment
         log "Installing conda-based installer build requirements..."
-        # To ensure correct channel priority, it must be set at the environment rc level
-        # and env update must be run from that environment.
-        cmd_run="$cmd run -n $NAME --live-stream"
-        $cmd_run conda config --env --set channel_priority flexible
-        $cmd_run $cmd ${update_opts[@]} --file $SPYREPO/installers-conda/build-environment.yml
-    fi
-fi
-
-if [[ $TYPE != "conda-build" ]]; then
-    log "Updating micromamba in the spyder repo..."
-    cd $SPYREPO/spyder
-    umamba_url=https://micro.mamba.pm/api/micromamba
-    arch_=$(arch)
-    [[ "$arch_" = "i386" || "$arch_" = "x86_64" ]] && arch_=64
-    if [[ "$OSTYPE" = "darwin"* ]]; then
-        curl -Ls $umamba_url/osx-$arch_/latest | tar -xvj bin/micromamba
-    else
-        wget -qO- $umamba_url/linux-$arch_/latest | tar -xvj bin/micromamba
+        $cmd ${update_opts[@]} --file $SPYREPO/installers-conda/build-environment.yml
     fi
 fi
