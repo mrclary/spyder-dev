@@ -48,11 +48,10 @@ fi
 
 if [[ "$OSTYPE" = "darwin"* ]]; then
     root_prefix=$HOME/Library/spyder-$ver
-    shortcut=$HOME/Applications/Spyder.app
 else
     root_prefix=$HOME/.local/spyder-$ver
-    shortcut=$HOME/.local/share/applicatons/spyder_spyder.desktop
 fi
+[[ -f "${root_prefix}/.nonadmin" ]] && mode="user" || mode="system"
 prefix=$root_prefix/envs/spyder-runtime
 menu=$prefix/Menu/spyder-menu.json
 
@@ -63,15 +62,17 @@ fi
 
 source $root_prefix/bin/activate base
 
+shortcut=$(python - <<EOF
+from menuinst.api import _load
+menu, menu_items = _load("$menu", target_prefix="$prefix", base_prefix="$root_prefix", _mode="$mode")
+print(menu_items[0]._paths()[0])
+EOF
+)
+
 if [[ -n "$UNINSTALL" ]]; then
     if [[ -e "$shortcut" ]]; then
-        if [[ "$OSTYPE" = "darwin"* ]]; then
-            curr_ver=$(plutil -extract CFBundleShortVersionString raw "$shortcut/Contents/Info.plist")
-            log "Uninstalling Spyder.app bundle version ${curr_ver}..."
-        else
-            log "Uninstalling Spyder shortcut..."
-        fi
-        python -c "import menuinst; menuinst.api.remove('$menu')"
+        log "Uninstalling ${shortcut} ..."
+        python -c "import menuinst; menuinst.api.remove('$menu', target_prefix='$prefix', base_prefix='$root_prefix')"
     else
         log "$shortcut already uninstalled."
     fi
@@ -80,11 +81,7 @@ else
 fi
 
 if [[ -n "$INSTALL" ]]; then
-    if [[ "$OSTYPE" = "darwin"* ]]; then
-        log "Installing Spyder.app bundle..."
-    else
-        log "Installing Spyder shortcut..."
-    fi
+    log "Installing $shortcut ..."
     python -c "import menuinst; menuinst.api.install('$menu', base_prefix='$root_prefix', target_prefix='$prefix')"
 
     if [[ ! -e "$shortcut" ]]; then
@@ -97,8 +94,8 @@ if [[ -n "$INSTALL" ]]; then
         tree $shortcut
         log "$shortcut/Contents/Info.plist contents:"
         cat $shortcut/Contents/Info.plist
-        log "$shortcut/Contents/MacOS/spyder-script contents:"
-        cat $shortcut/Contents/MacOS/spyder-script
+        log "$shortcut/Contents/MacOS/spyder*-script contents:"
+        cat $shortcut/Contents/MacOS/spyder*-script
         echo ""
     else
         log "Contents of ${shortcut}:"
