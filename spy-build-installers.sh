@@ -137,18 +137,12 @@ fi
 pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name ${build_pkg_opts[@]})"
 
 if [[ -n $INSTALL ]]; then
-    if [[ $OSTYPE = "darwin"* ]]; then
-        dest_root=$HOME/Library
-        shortcut_path=$HOME/Applications/Spyder.app
-    else
-        dest_root=$HOME/.local
-        shortcut_path=$HOME/.local/share/applications/spyder_spyder.desktop
-    fi
+    [[ $OSTYPE = "darwin"* ]] && dest_root=$HOME/Library/spyder-* || dest_root=$HOME/.local/spyder-*
+    dest_root=$(dirname $dest_root)/$(basename $dest_root)
+    u_spy_exe=$dest_root/uninstall-spyder.sh
 
     # Remove previous install
     log "Uninstall previous installation..."
-    u_spy_exe=$dest_root/spyder-*/uninstall-spyder.sh
-    u_spy_exe=$(dirname $u_spy_exe)/$(basename $u_spy_exe)
     [[ -f $u_spy_exe ]] && $u_spy_exe -f
 
     # Run installer
@@ -162,19 +156,27 @@ if [[ -n $INSTALL ]]; then
         "$pkg_name" ${install_opts[@]}
     fi
 
+    # Get shortcut path
+    shortcut=$($dest_root/bin/python - <<EOF
+from menuinst.api import _load
+menu, menu_items = _load("$menu", target_prefix="$prefix", base_prefix="$root_prefix", _mode="$mode")
+print(menu_items[0]._paths()[0])
+EOF
+    )
+
     # Show install results
     log "Install info:"
-    echo -e "Contents of" $dest_root/spyder-* :
-    ls -al $dest_root/spyder-*
-    echo -e "\nContents of" $dest_root/spyder-*/uninstall-spyder.sh :
-    cat $dest_root/spyder-*/uninstall-spyder.sh
+    echo -e "Contents of ${dest_root}:"
+    ls -al $dest_root
+    echo -e "\nContents of $dest_root/uninstall-spyder.sh:"
+    cat $dest_root/uninstall-spyder.sh
     echo ""
     if [[ "$OSTYPE" = "darwin"* && -e "$shortcut_path" ]]; then
         tree $shortcut_path
         echo ""
         cat $shortcut_path/Contents/Info.plist
         echo ""
-        cat $shortcut_path/Contents/MacOS/spyder-script
+        cat $shortcut_path/Contents/MacOS/spyder*script
         echo ""
     elif [[ "$OSTYPE" = "linux" && -e "$shortcut_path" ]]; then
         cat $shortcut_path
@@ -186,7 +188,7 @@ else
     log "Not installing"
 fi
 
-if [[ -n $NOTARIZE && $OSTYPE = "darwin"* ]]; then
+if [[ -n "$NOTARIZE" && "$OSTYPE" = "darwin"* ]]; then
     $src_inst_dir/notarize.sh ${notarize_opts[@]} $pkg_name
 else
     log "Not notarizing"

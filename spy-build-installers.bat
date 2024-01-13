@@ -57,7 +57,7 @@ echo.
 :: Build conda packages
 if "%BUILDCONDA%"=="true" (
     echo Building conda packages...
-    python %src_inst_dir%\build_conda_pkgs.py %BUILDOPTS% || goto exit
+    python "%src_inst_dir%\build_conda_pkgs.py" %BUILDOPTS% || goto exit
 ) else (
     echo Not building conda packages
 )
@@ -65,70 +65,46 @@ if "%BUILDCONDA%"=="true" (
 :: Build installer pkg
 if "%BUILDPKG%"=="true" (
     echo Building installer...
-    python %src_inst_dir%\build_installers.py || goto exit
+    python "%src_inst_dir%\build_installers.py" || goto exit
 ) else (
     echo Not building installer
 )
 
 for /F "tokens=*" %%i in (
-    'python %src_inst_dir%\build_installers.py --artifact-name'
+    'python "%src_inst_dir%\build_installers.py" --artifact-name'
 ) do (
     set pkg_name=%%~fi
 )
 echo pkg_name: "%pkg_name%"
 
-rem if "%INSTALL%"=="true" (
-rem    echo install
-rem      # Remove previous install
-rem      log "Uninstall previous installation..."
-rem      u_spy_exe=$dest_root/spyder-*/uninstall-spyder.sh
-rem      u_spy_exe=$(dirname $u_spy_exe)/$(basename $u_spy_exe)
-rem      [[ -f $u_spy_exe ]] && $u_spy_exe -f
-rem
-rem      # Run installer
-rem      log "Installing Spyder..."
-rem      if [[ "$pkg_name" =~ ^.*\.pkg$ ]]; then
-rem          tail -F /var/log/install.log &
-rem          trap "kill -s TERM $!" EXIT
-rem          installer -pkg $pkg_name -target CurrentUserHomeDirectory
-rem      else
-rem          # export CONDA_VERBOSITY=3
-rem          "$pkg_name" ${install_opts[@]}
-rem      fi
-rem
-rem      set base_prefix=%localappdata%\spyder-6
-rem      set target_prefix=%base_prefix%\envs\spyder-runtime
-rem      set menu=%target_prefix%\Menu\spyder-menu.json
-rem      set mode
-rem      for /F "tokens=*" %%i in (
-rem          '%base_prefix%\python -c "from menuinst.api import _load; menu, menu_items = _load(r'%menu%', target_prefix='%spy_rt%', base_prefix='%base_prefix%', _mode='%mode%'); print(menu_items[0]._paths()[0])"'
-rem      ) do (
-rem          set shortcut=%%~fi
-rem      )
-rem
-rem      # Show install results
-rem      log "Install info:"
-rem      echo -e "Contents of" $dest_root/spyder-* :
-rem      ls -al $dest_root/spyder-*
-rem      echo -e "\nContents of" $dest_root/spyder-*/uninstall-spyder.sh :
-rem      cat $dest_root/spyder-*/uninstall-spyder.sh
-rem      echo ""
-rem      if [[ "$OSTYPE" = "darwin"* && -e "$shortcut_path" ]]; then
-rem          tree $shortcut_path
-rem          echo ""
-rem          cat $shortcut_path/Contents/Info.plist
-rem          echo ""
-rem          cat $shortcut_path/Contents/MacOS/spyder-script
-rem          echo ""
-rem      elif [[ "$OSTYPE" = "linux" && -e "$shortcut_path" ]]; then
-rem          cat $shortcut_path
-rem          echo ""
-rem      else
-rem          log "$shortcut_path does not exist"
-rem      fi
-rem ) else (
-rem    echo Not installing
-rem )
+:: Install
+if "%INSTALL%"=="true" (
+    set base_prefix=%USERPROFILE%\AppData\Local\spyder-6
+
+    :: Remove previous install
+    start /wait "%base_prefix%\Uninstall-Spyder"
+
+    start /wait "%pkg_name%" /InstallationType=JustMe /NoRegistry=1 /S
+
+    :: Get shortcut path
+    set spy_rt=%base_prefix%\envs\spyder-runtime
+    set menu=%spy_rt%\Menu\spyder-menu.json
+    set mode=user
+    for /F "tokens=*" %%i in (
+        '%base_prefix%\python -c "from menuinst.api import _load; menu, menu_items = _load(r'%menu%', target_prefix=r'%spy_rt%', base_prefix=r'%base_prefix%', _mode='%mode%'); print(menu_items[0]._paths()[0])"'
+    ) do (
+        set shortcut=%%~fi
+    )
+
+    if exist "%shortcut%" (
+        echo Spyder installed successfully
+    ) else (
+        echo Spyder NOT installed successfully
+        EXIT /B 1
+    )
+) else (
+  echo Not installing
+)
 
 :exit
 exit /b %errorlevel%

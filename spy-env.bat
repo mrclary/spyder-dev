@@ -23,11 +23,11 @@ echo Options:
 echo   -h        Display this help
 echo.
 echo   -t TYPE   Envrionment type. "dev" or "conda-build". Default is "dev". conda-build
-                 is a conda environment suitable for building the conda-based installers.
-                 dev is a conda environment for developing Spyder.
+echo             is a conda environment suitable for building the conda-based installers.
+echo             dev is a conda environment for developing Spyder.
 echo.
 echo   -n NAME   Environment name. Default is spy-dev for dev type or spy-inst for
-                 conda-build type.
+echo             conda-build type.
 echo   -v PYVER  Specify the Python version. Default is %pyver%.x.
 echo.
 goto exit
