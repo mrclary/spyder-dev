@@ -32,79 +32,94 @@ echo Build conda packages, build package installer, and/or install
 echo the package for user.
 echo.
 echo Options:
-echo   -h  Display this help
+echo   -h          Display this help
 echo.
-echo   -a  Perform all operations: build conda packages; build package
-echo       installer; notarize package installer; and install package.
-echo       Equivalent to -c -p -n -i
+echo   -c          Build conda packages for Spyder and external-deps. Uses
+echo               build_conda_pkgs.py.
 echo.
-echo   -c  Build conda packages for Spyder and external-deps. Uses
-echo       build_conda_pkgs.py.
+echo   -C OPTIONS  Options for building conda packages. This should be a single
+echo               string of space-separated options, e.g.
+echo               "--debug --build spyder"
+echo   -p          Build package installer (.exe). Uses build_installers.py
 echo.
-echo   -p  Build package installer (.exe). Uses build_installers.py
-echo.
-echo   -i  Install the package to the current user
+echo   -i          Install the package to the current user
 goto exit
 
 :endparse
 
 echo src_inst_dir: "%src_inst_dir%"
-echo BUILDCONDA: %BUILDCONDA%
-echo BUILDPKG: %BUILDPKG%
-echo INSTALL: %INSTALL%
+echo Build conda packages: %BUILDCONDA%
+echo Build installer: %BUILDPKG%
+echo Install: %INSTALL%
 echo.
 
 :: Build conda packages
 if "%BUILDCONDA%"=="true" (
-    echo Building conda packages...
-    python "%src_inst_dir%\build_conda_pkgs.py" %BUILDOPTS% || goto exit
+    call :build_conda_pkgs
 ) else (
     echo Not building conda packages
 )
 
 :: Build installer pkg
 if "%BUILDPKG%"=="true" (
-    echo Building installer...
-    python "%src_inst_dir%\build_installers.py" || goto exit
+    call :build_installer
 ) else (
     echo Not building installer
 )
 
-for /F "tokens=*" %%i in (
-    'python "%src_inst_dir%\build_installers.py" --artifact-name'
-) do (
-    set pkg_name=%%~fi
-)
-echo pkg_name: "%pkg_name%"
+call :get_pkg_name
 
 :: Install
 if "%INSTALL%"=="true" (
+    call :install
+) else (
+  echo Not installing
+)
+
+:exit
+    exit /b %errorlevel%
+
+:build_conda_pkgs
+    echo Building conda packages...
+    python "%src_inst_dir%\build_conda_pkgs.py" %BUILDOPTS% || goto exit
+    goto :eof
+
+:build_installer
+    echo Building installer...
+    python "%src_inst_dir%\build_installers.py" || goto exit
+    goto :eof
+
+:get_pkg_name
+    for /F "tokens=*" %%i in (
+        'python "%src_inst_dir%\build_installers.py" --artifact-name'
+    ) do (
+        set pkg_name=%%~fi
+    )
+    echo pkg_name: "%pkg_name%"
+    goto :eof
+
+:install
     set base_prefix=%USERPROFILE%\AppData\Local\spyder-6
-
-    :: Remove previous install
-    start /wait "%base_prefix%\Uninstall-Spyder"
-
-    start /wait "%pkg_name%" /InstallationType=JustMe /NoRegistry=1 /S
-
-    :: Get shortcut path
     set spy_rt=%base_prefix%\envs\spyder-runtime
     set menu=%spy_rt%\Menu\spyder-menu.json
     set mode=user
+    :: Remove previous install
+    if exist %base_prefix%\Uninstall-Spyder.exe start /wait %base_prefix%\Uninstall-Spyder.exe /S
+
+    start /wait %pkg_name% /InstallationType=JustMe /NoRegistry=1 /S || goto exit
+
+    :: Get shortcut path
     for /F "tokens=*" %%i in (
         '%base_prefix%\python -c "from menuinst.api import _load; menu, menu_items = _load(r'%menu%', target_prefix=r'%spy_rt%', base_prefix=r'%base_prefix%', _mode='%mode%'); print(menu_items[0]._paths()[0])"'
     ) do (
         set shortcut=%%~fi
     )
 
+    echo shortcut: "%shortcut%"
     if exist "%shortcut%" (
         echo Spyder installed successfully
     ) else (
         echo Spyder NOT installed successfully
         EXIT /B 1
     )
-) else (
-  echo Not installing
-)
-
-:exit
-exit /b %errorlevel%
+    goto :eof
