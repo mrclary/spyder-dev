@@ -54,26 +54,19 @@ echo Install: %INSTALL%
 echo.
 
 :: Build conda packages
-if "%BUILDCONDA%"=="true" (
-    call :build_conda_pkgs
-) else (
-    echo Not building conda packages
-)
+if "%BUILDCONDA%"=="true" call :build_conda_pkgs
 
-:: Build installer pkg
-if "%BUILDPKG%"=="true" (
-    call :build_installer
-) else (
-    echo Not building installer
-)
+if "%BUILDPKG%" neq "true" if "%INSTALL%" neq "true" goto exit
 
 call :get_pkg_name
 
+:: Build installer pkg
+if "%BUILDPKG%"=="true" call :build_installer
+
 :: Install
 if "%INSTALL%"=="true" (
+    call :uninstall
     call :install
-) else (
-  echo Not installing
 )
 
 :exit
@@ -82,11 +75,6 @@ if "%INSTALL%"=="true" (
 :build_conda_pkgs
     echo Building conda packages...
     python "%src_inst_dir%\build_conda_pkgs.py" %BUILDOPTS% || goto exit
-    goto :eof
-
-:build_installer
-    echo Building installer...
-    python "%src_inst_dir%\build_installers.py" || goto exit
     goto :eof
 
 :get_pkg_name
@@ -98,15 +86,36 @@ if "%INSTALL%"=="true" (
     echo pkg_name: "%pkg_name%"
     goto :eof
 
-:install
+:build_installer
+    echo Building installer...
+    python "%src_inst_dir%\build_installers.py"
+    if not exist "%pkg_name%" goto exit
+    goto :eof
+
+:uninstall
     set base_prefix=%USERPROFILE%\AppData\Local\spyder-6
+
+    if not exist %base_prefix%\Uninstall-Spyder.exe goto :eof
+
+    echo Uninstalling existing Spyder...
+    start /wait %base_prefix%\Uninstall-Spyder.exe /S
+    timeout /t 2 /nobreak > nul
+    :loop
+    tasklist /fi "ImageName eq Un_A.exe" /fo csv 2>NUL | findstr /r "Un_A.exe">NUL
+    if "%errorlevel%"=="0" (
+        timeout /t 1 /nobreak > nul
+        goto loop
+    )
+    echo Uninstall complete.
+    goto :eof
+
+:install
     set spy_rt=%base_prefix%\envs\spyder-runtime
     set menu=%spy_rt%\Menu\spyder-menu.json
     set mode=user
-    :: Remove previous install
-    if exist %base_prefix%\Uninstall-Spyder.exe start /wait %base_prefix%\Uninstall-Spyder.exe /S
 
-    start /wait %pkg_name% /InstallationType=JustMe /NoRegistry=1 /S || goto exit
+    echo Installing Spyder...
+    start /wait %pkg_name% /InstallationType=JustMe /KeepPkgCache=1 /S || goto exit
 
     :: Get shortcut path
     for /F "tokens=*" %%i in (
@@ -114,6 +123,7 @@ if "%INSTALL%"=="true" (
     ) do (
         set shortcut=%%~fi
     )
+    if "%errorlevel%" neq "0" goto :exit
 
     echo shortcut: "%shortcut%"
     if exist "%shortcut%" (
