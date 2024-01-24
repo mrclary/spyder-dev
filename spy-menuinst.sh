@@ -91,15 +91,15 @@ if [[ -n "$INSTALL" ]]; then
 
     if [[ "$OSTYPE" = "darwin"* ]]; then
         log "$shortcut structure:"
-        tree $shortcut
+        tree "$shortcut"
         log "$shortcut/Contents/Info.plist contents:"
-        cat $shortcut/Contents/Info.plist
-        log "$shortcut/Contents/MacOS/spyder*-script contents:"
-        cat $shortcut/Contents/MacOS/spyder*-script
+        cat "$shortcut/Contents/Info.plist"
+        log "$shortcut/Contents/MacOS/spyder"*-script contents:
+        cat "$shortcut/Contents/MacOS/spyder"*-script
         echo ""
     else
         log "Contents of ${shortcut}:"
-        cat $shortcut
+        cat "$shortcut"
     fi
 else
     log "Skip install."
