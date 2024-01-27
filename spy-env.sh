@@ -135,6 +135,13 @@ if [[ "$TYPE" = "mac-build" ]]; then
 
     python -m pip install -U pip setuptools wheel
 
+    log "Installing micromamba in Spyder repo..."
+    pushd $SPYREPO
+    [[ "$(arch)" == "arm64" ]] && platform=osx-arm64 || platform=osx-64
+    curl -Ls https://micro.mamba.pm/api/micromamba/${platform}/latest | tar -xvj bin/micromamba
+    install_name_tool -change @rpath/libc++.1.dylib /usr/lib/libc++.1.dylib bin/micromamba
+    popd
+
     log "Installing spyder..."
     INSTALLDIR=$SPYREPO/installers/macOS
     SPEC=("importlib-metadata")
@@ -143,7 +150,7 @@ if [[ "$TYPE" = "mac-build" ]]; then
         [[ "$f" = req-* ]] && SPEC+=("-r" "$INSTALLDIR/$f")
     done
     python -m pip install ${install_opts[@]} ${SPEC[@]} -e $SPYREPO
-    python $SPYREPO/install_dev_repos.py --no-install spyder
+    python $SPYREPO/install_dev_repos.py --not-editable --no-install spyder
 else
     if [[ -z "$NAME" ]]; then
         [[ "$TYPE" == "dev" ]] && NAME=spy-dev || NAME=spy-inst

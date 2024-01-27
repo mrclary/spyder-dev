@@ -101,6 +101,9 @@ if [[ -n $ALL ]]; then
     INSTALL=0
 fi
 
+SPYTMPDIR=$TMPDIR/spyder
+mkdir -p $SPYTMPDIR
+
 # ---- Build conda packages
 if [[ -n $BUILDCONDA ]]; then
     log "Building conda packages..."
@@ -119,9 +122,15 @@ if [[ (-n $BUILDPKG || -n $NOTARIZE) && $OSTYPE = "darwin"* ]]; then
         mv $_codesign ${_codesign}.bak
     fi
 
-    trap "security list-keychain -s login.keychain; rm -rf certificate.p12" EXIT
-    source "$here/~cert/cert.sh"
-    $src_inst_dir/certkeychain.sh $MACOS_CERTIFICATE_PWD $MACOS_CERTIFICATE $MACOS_INSTALLER_CERTIFICATE "$here/~cert/DeveloperIDG2CA.cer"
+    APPCERT=$(op read "op://Personal/Apple Developer Program/Developer ID Application Certificate")
+    INSTCERT=$(op read "op://Personal/Apple Developer Program/Developer ID Installer Certificate")
+    AUTHCERT=$(op read "op://Personal/Apple Developer Program/Developer ID Certification Authority")
+    CERTPASS=$(op read "op://Personal/Apple Developer Program/Certificate Password")
+    APPPASS=$(op read "op://Personal/Apple Developer Program/Application Password")
+
+    trap "$src_inst_dir/certkeychain.sh -c" EXIT
+    echo $AUTHCERT | base64 --decode > $SPYTMPDIR/certificate.cer
+    $src_inst_dir/certkeychain.sh $CERTPASS $APPCERT $INSTCERT $SPYTMPDIR/certificate.cer
     CNAME=$(security find-identity -p codesigning -v | pcre2grep -o1 "\(([0-9A-Z]+)\)")
     [[ -n "$CNAME" ]] && build_pkg_opts+=("--cert-id=$CNAME")
 fi
@@ -137,9 +146,9 @@ fi
 pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name ${build_pkg_opts[@]})"
 
 if [[ -n $INSTALL ]]; then
-    [[ $OSTYPE = "darwin"* ]] && dest_root=$HOME/Library/spyder-* || dest_root=$HOME/.local/spyder-*
-    dest_root=$(dirname $dest_root)/$(basename $dest_root)
-    u_spy_exe=$dest_root/uninstall-spyder.sh
+    [[ $OSTYPE = "darwin"* ]] && root_prefix=$HOME/Library/spyder-* || root_prefix=$HOME/.local/spyder-*
+    root_prefix=$(dirname $root_prefix)/$(basename $root_prefix)
+    u_spy_exe=$root_prefix/uninstall-spyder.sh
 
     # Remove previous install
     log "Uninstall previous installation..."
@@ -157,7 +166,10 @@ if [[ -n $INSTALL ]]; then
     fi
 
     # Get shortcut path
-    shortcut=$($dest_root/bin/python - <<EOF
+    prefix=$root_prefix/envs/spyder-runtime
+    menu=$prefix/Menu/spyder-menu.json
+    [[ -e "$prefix/.nonadmin" ]] && mode=user || mode=system
+    shortcut=$($root_prefix/bin/python - <<EOF
 from menuinst.api import _load
 menu, menu_items = _load("$menu", target_prefix="$prefix", base_prefix="$root_prefix", _mode="$mode")
 print(menu_items[0]._paths()[0])
@@ -166,10 +178,10 @@ EOF
 
     # Show install results
     log "Install info:"
-    echo -e "Contents of ${dest_root}:"
-    ls -al $dest_root
-    echo -e "\nContents of $dest_root/uninstall-spyder.sh:"
-    cat $dest_root/uninstall-spyder.sh
+    echo -e "Contents of ${root_prefix}:"
+    ls -al $root_prefix
+    echo -e "\nContents of $root_prefix/uninstall-spyder.sh:"
+    cat $root_prefix/uninstall-spyder.sh
     echo ""
     if [[ "$OSTYPE" = "darwin"* && -e "$shortcut_path" ]]; then
         tree $shortcut_path

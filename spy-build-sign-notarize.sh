@@ -6,15 +6,14 @@ SPYROOT=$(dirname $(dirname ${BASH_SOURCE:-${(%):-%x}}))
 build_opts=()
 sign_opts=()
 
-while getopts ":habsdznlu" option; do
+while getopts ":habsdnlu" option; do
     case $option in
         (h) help; exit ;;
-        (a) all=0 ;;
-        (b) build=0 ;;
-        (s) sign=0 ;;
-        (d) dmg=0 ;;
-        (z) signdmg=0 ;;
-        (n) notarize=0 ;;
+        (a) all=true ;;
+        (b) build=true ;;
+        (s) sign=true ;;
+        (d) dmg=true ;;
+        (n) notarize=true ;;
         (l) build_opts+=("--lite") ;; # build lite
         (u) sign_opts=("-u") ;;
     esac
@@ -22,19 +21,38 @@ done
 shift $(($OPTIND - 1))
 
 if [[ -n $all ]]; then
-    build=0
-    sign=0
-    dmg=0
-    signdmg=0
-    notarize=0
+    build=true
+    sign=true
+    dmg=true
+    notarize=true
 fi
 
 cd "$SPYROOT/spyder/installers/macOS"
 
-[[ -n $build ]] && python setup.py ${build_opts[@]}
-# certkeychain.sh $CERT $PASS
-[[ -n $sign ]] && ./codesign.sh ${sign_opts[@]} dist/Spyder.app
-# ./notarize.sh -p "dmxe-uloq-qamy-yfil" dist/Spyder.app
-[[ -n $dmg ]] && python setup.py --no-app --dmg
-[[ -n $signdmg ]] && ./codesign.sh dist/Spyder.dmg
-[[ -n $notarize ]] && ./notarize.sh -p @keychain:spyder-ide dist/Spyder.dmg
+if [[ -n $sign || -n $notarize ]]; then
+    CERT=$(op read "op://Personal/Apple Developer Program/Developer ID Application Certificate")
+    CERTPASS=$(op read "op://Personal/Apple Developer Program/Certificate Password")
+    APPPASS=$(op read "op://Personal/Apple Developer Program/Application Password")
+#     trap "security list-keychain -s login.keychain; rm -rf certificate.p12" EXIT
+#     ./certkeychain.sh $CERT $CERTPASS
+fi
+
+if [[ -n $build ]]; then
+    python setup.py ${build_opts[@]} --dist-dir dist
+fi
+if [[ -n $sign && -d dist/Spyder.app ]]; then
+    pil=$(python -c "import PIL, os; print(os.path.dirname(PIL.__file__))")
+    rm -v dist/Spyder.app/Contents/Frameworks/liblzma.5.dylib
+    cp -v ${pil}/.dylibs/liblzma.5.dylib dist/Spyder.app/Contents/Frameworks/
+    ./codesign.sh ${sign_opts[@]} dist/Spyder.app
+fi
+
+if [[ -n $dmg ]]; then
+    python setup.py --no-app --dmg --dist-dir dist
+fi
+if [[ -n $sign && -f dist/Spyder.dmg ]]; then
+    ./codesign.sh ${sign_opts[@]} dist/Spyder.dmg
+fi
+if [[ -n $notarize && -f dist/Spyder.dmg ]]; then
+    ./~notarize.sh -p $APPPASS dist/Spyder.dmg
+fi
