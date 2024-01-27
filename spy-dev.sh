@@ -15,6 +15,8 @@ Options:
 EOF
 }
 
+local me=${BASH_SOURCE:-${(%):-%x}}
+
 while getopts "hu" option; do
     case $option in
         (h) help; return ;;
@@ -24,11 +26,11 @@ done
 shift $(($OPTIND - 1))
 
 if [[ -z $unset_var ]]; then
-    export SPYDEV=$(dirname ${BASH_SOURCE:-${(%):-%x}})
+    echo Setting Spyder environment variables and aliases...
+    export SPYDEV=$(dirname $me)
     ROOT=$(dirname $SPYDEV)
     export SPYREPO=$ROOT/spyder
     EXTDEPS=$SPYREPO/external-deps
-
     alias spy-build-installers="$SPYDEV/spy-build-installers.sh"
     alias spy-clone-subrepo="$SPYDEV/spy-clone-subrepo.sh"
     alias spy-env="$SPYDEV/spy-env.sh"
@@ -40,12 +42,17 @@ if [[ -z $unset_var ]]; then
     fi
 
 else
-    raw_env=($(/usr/bin/env -i bash -c "source $BASH_SOURCE; compgen -va"))
-    new_env=($(/usr/bin/env -i bash -c "source $BASH_SOURCE; spy-var; compgen -va"))
-    to_remove=($(echo ${raw_env[@]} ${new_env[@]} | tr ' ' '\n' | sort | uniq -u))
-    unalias ${to_remove[@]} 2> /dev/null
-    unset -v ${to_remove[@]} raw_env new_env to_remove 2> /dev/null
-fi
+    echo Removing Spyder environment variables and aliases...
+    local raw_v=($(/usr/bin/env -i bash -c "source $me ; compgen -v"))
+    local raw_a=($(/usr/bin/env -i bash -c "source $me ; compgen -a"))
+    local new_v=($(/usr/bin/env -i bash -c "source $me ; spy-var &>/dev/null; compgen -v"))
+    local new_a=($(/usr/bin/env -i bash -c "source $me ; spy-var &>/dev/null; compgen -a"))
+    local to_rem_v=($(echo ${raw_v[@]} ${new_v[@]} | tr ' ' '\n' | sort | uniq -u))
+    local to_rem_a=($(echo ${raw_a[@]} ${new_a[@]} | tr ' ' '\n' | sort | uniq -u))
 
-unset help unset_var option OPTIND OPTERR
+    unalias ${to_rem_a[@]}
+    unset -v ${to_rem_v[@]}
+fi
+unset -f help
+unset -v option unset_var OPTERR OPTARG
 }
