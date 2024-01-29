@@ -36,14 +36,12 @@ set base_prefix=%localappdata%\spyder-%VER%
 set target_prefix=%base_prefix%\envs\spyder-runtime
 set menu=%target_prefix%\Menu\spyder-menu.json
 
-%base_prefix%\Scripts\activate base
-
 if "%UNINSTALL%"=="true" (
-    python -c "import menuinst; menuinst.api.remove(r'%menu%', target_prefix=r'%target_prefix%', base_prefix=r'%base_prefix%')"
+    %base_prefix%\python -c "from menuinst.api import remove; remove(r'%menu%', target_prefix=r'%target_prefix%', base_prefix=r'%base_prefix%')"
 )
 
 if "%INSTALL%"=="true" (
-    python -c "import menuinst; menuinst.api.install(r'%menu%', target_prefix=r'%target_prefix%', base_prefix=r'%base_prefix%')"
+    %base_prefix%\python -c "from menuinst.api import install; install(r'%menu%', target_prefix=r'%target_prefix%', base_prefix=r'%base_prefix%')"
 )
 
 :exit

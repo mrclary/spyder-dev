@@ -73,6 +73,10 @@ if "%INSTALL%"=="true" (
     exit /b %errorlevel%
 
 :build_conda_pkgs
+    echo Removing existing conda packages...
+    del /S /Q "%USERPROFILE%\.conda\conda-bld\win-64\spyder-6*"
+    del /S /Q "%USERPROFILE%\.conda\conda-bld\channeldata.json"
+
     echo Building conda packages...
     python "%src_inst_dir%\build_conda_pkgs.py" %BUILDOPTS% || goto exit
     goto :eof
@@ -87,7 +91,12 @@ if "%INSTALL%"=="true" (
     goto :eof
 
 :build_installer
+    echo Removing constructor cache for Spyder...
+    del /S /Q "%USERPROFILE%\.conda\constructor\win-64\spyder-6*"
+    for /d %%i in ("%USERPROFILE%\.conda\constructor\win-64\spyder-6*") do rmdir /S /Q %%i
+
     echo Building installer...
+    set NSIS_USING_LOG_BUILD=1
     python "%src_inst_dir%\build_installers.py"
     if not exist "%pkg_name%" goto exit
     goto :eof
@@ -115,7 +124,8 @@ if "%INSTALL%"=="true" (
     set mode=user
 
     echo Installing Spyder...
-    start /wait %pkg_name% /InstallationType=JustMe /KeepPkgCache=1 /S || goto exit
+    start /wait %pkg_name% /S /D=%LOCALAPPDATA%\spyder-6
+    if exist %LOCALAPPDATA%\spyder-6\install.log type %LOCALAPPDATA%\spyder-6\install.log
 
     :: Get shortcut path
     for /F "tokens=*" %%i in (
