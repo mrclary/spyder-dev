@@ -101,11 +101,16 @@ if [[ -n $ALL ]]; then
     INSTALL=0
 fi
 
-SPYTMPDIR=$TMPDIR/spyder
+SPYTMPDIR=${TMPDIR:-/tmp}/spyder
 mkdir -p $SPYTMPDIR
 
 # ---- Build conda packages
 if [[ -n $BUILDCONDA ]]; then
+    log "Removing cached Spyder conda package..."
+    [[ "$OSTYPE" == "darwin"* ]] && rm $HOME/.conda/conda-bld/osx-64/spyder-6*
+    [[ "$OSTYPE" == "linux"* ]] && rm $HOME/.conda/conda-bld/linux-64/spyder-6*
+    rm $HOME/.conda/conda-bld/channeldata.json
+
     log "Building conda packages..."
     python $src_inst_dir/build_conda_pkgs.py ${build_conda_opts[@]}
     log "Building conda packages complete"
@@ -137,6 +142,10 @@ fi
 
 # ---- Build installer pkg
 if [[ -n $BUILDPKG ]]; then
+    log "Removing cached Spyder package for constructor..."
+    [[ "$OSTYPE" == "darwin"* ]] && rm -rf $HOME/.conda/constructor/osx-64/spyder-6*
+    [[ "$OSTYPE" == "linux"* ]] && rm -rf $HOME/.conda/constructor/linux-64/spyder-6*
+
     log "Building installer..."
     python $src_inst_dir/build_installers.py ${build_pkg_opts[@]}
 else
@@ -151,7 +160,7 @@ if [[ -n $INSTALL ]]; then
     u_spy_exe=$root_prefix/uninstall-spyder.sh
 
     # Remove previous install
-    log "Uninstall previous installation..."
+    log "Uninstalling previous installation..."
     [[ -f $u_spy_exe ]] && $u_spy_exe -f
 
     # Run installer
@@ -183,18 +192,18 @@ EOF
     echo -e "\nContents of $root_prefix/uninstall-spyder.sh:"
     cat $root_prefix/uninstall-spyder.sh
     echo ""
-    if [[ "$OSTYPE" = "darwin"* && -e "$shortcut_path" ]]; then
-        tree $shortcut_path
+    if [[ "$OSTYPE" = "darwin"* && -e "$shortcut" ]]; then
+        tree $shortcut
         echo ""
-        cat $shortcut_path/Contents/Info.plist
+        cat $shortcut/Contents/Info.plist
         echo ""
-        cat $shortcut_path/Contents/MacOS/spyder*script
+        cat $shortcut/Contents/MacOS/spyder*script
         echo ""
-    elif [[ "$OSTYPE" = "linux" && -e "$shortcut_path" ]]; then
-        cat $shortcut_path
+    elif [[ "$OSTYPE" = "linux" && -e "$shortcut" ]]; then
+        cat $shortcut
         echo ""
     else
-        log "$shortcut_path does not exist"
+        log "$shortcut does not exist"
     fi
 else
     log "Not installing"
