@@ -1,9 +1,12 @@
 # Command-line tools for managing Spyder development environments
 
 spy-var () {
+local funcname=$FUNCNAME
+local SOURCE=${BASH_SOURCE:-${(%):-%x}}
+
 help () { cat <<EOF
 
-$FUNCNAME [-h] [-u]
+$funcname [-h] [-u]
 
 Set or unset Spyder development environment variables
 
@@ -15,19 +18,18 @@ Options:
 EOF
 }
 
-local me=${BASH_SOURCE:-${(%):-%x}}
-
+local option
 while getopts "hu" option; do
     case $option in
         (h) help; return ;;
-        (u) unset_var=0 ;;
+        (u) local unset_var=0 ;;
     esac
 done
 shift $(($OPTIND - 1))
 
 if [[ -z $unset_var ]]; then
     echo Setting Spyder environment variables and aliases...
-    export SPYDEV=$(dirname $me)
+    export SPYDEV=$(dirname $SOURCE)
     ROOT=$(dirname $SPYDEV)
     export SPYREPO=$ROOT/spyder
     EXTDEPS=$SPYREPO/external-deps
@@ -43,10 +45,10 @@ if [[ -z $unset_var ]]; then
 
 else
     echo Removing Spyder environment variables and aliases...
-    local raw_v=($(/usr/bin/env -i bash -c "source $me ; compgen -v"))
-    local raw_a=($(/usr/bin/env -i bash -c "source $me ; compgen -a"))
-    local new_v=($(/usr/bin/env -i bash -c "source $me ; spy-var &>/dev/null; compgen -v"))
-    local new_a=($(/usr/bin/env -i bash -c "source $me ; spy-var &>/dev/null; compgen -a"))
+    local raw_v=($(/usr/bin/env -i bash -c "source $SOURCE ; compgen -v"))
+    local raw_a=($(/usr/bin/env -i bash -c "source $SOURCE ; compgen -a"))
+    local new_v=($(/usr/bin/env -i bash -c "source $SOURCE ; $funcname &>/dev/null; compgen -v"))
+    local new_a=($(/usr/bin/env -i bash -c "source $SOURCE ; $funcname &>/dev/null; compgen -a"))
     local to_rem_v=($(echo ${raw_v[@]} ${new_v[@]} | tr ' ' '\n' | sort | uniq -u))
     local to_rem_a=($(echo ${raw_a[@]} ${new_a[@]} | tr ' ' '\n' | sort | uniq -u))
 
@@ -54,5 +56,4 @@ else
     unset -v ${to_rem_v[@]}
 fi
 unset -f help
-unset -v option unset_var OPTERR OPTARG
 }
