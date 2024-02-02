@@ -102,34 +102,25 @@ if "%INSTALL%"=="true" (
     goto :eof
 
 :uninstall
-    set base_prefix=%USERPROFILE%\AppData\Local\spyder-6
+    set base_prefix=%LOCALAPPDATA%\spyder-6
 
     if not exist %base_prefix%\Uninstall-Spyder.exe goto :eof
 
     echo Uninstalling existing Spyder...
-    start /wait %base_prefix%\Uninstall-Spyder.exe /S
-    timeout /t 2 /nobreak > nul
-    :loop
-    tasklist /fi "ImageName eq Un_A.exe" /fo csv 2>NUL | findstr /r "Un_A.exe">NUL
-    if "%errorlevel%"=="0" (
-        timeout /t 1 /nobreak > nul
-        goto loop
-    )
+    start /wait %base_prefix%\Uninstall-Spyder.exe /S _?=%base_prefix%
     echo Uninstall complete.
     goto :eof
 
 :install
-    set spy_rt=%base_prefix%\envs\spyder-runtime
-    set menu=%spy_rt%\Menu\spyder-menu.json
     set mode=user
 
     echo Installing Spyder...
-    start /wait %pkg_name% /S /D=%LOCALAPPDATA%\spyder-6
-    if exist %LOCALAPPDATA%\spyder-6\install.log type %LOCALAPPDATA%\spyder-6\install.log
+    start /wait %pkg_name% /InstallationType=JustMe /S
+    if exist %base_prefix%\install.log type %base_prefix%\install.log
 
     :: Get shortcut path
     for /F "tokens=*" %%i in (
-        '%base_prefix%\python -c "from menuinst.api import _load; menu, menu_items = _load(r'%menu%', target_prefix=r'%spy_rt%', base_prefix=r'%base_prefix%', _mode='%mode%'); print(menu_items[0]._paths()[0])"'
+        '%base_prefix%\python %base_prefix%\Scripts\menuinst_cli.py shortcut --mode=%mode%'
     ) do (
         set shortcut=%%~fi
     )

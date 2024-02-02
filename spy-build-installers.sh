@@ -101,7 +101,7 @@ if [[ -n $ALL ]]; then
     INSTALL=0
 fi
 
-SPYTMPDIR=${TMPDIR:-/tmp}/spyder
+SPYTMPDIR=${TMPDIR:-/tmp/}spyder
 mkdir -p $SPYTMPDIR
 
 # ---- Build conda packages
@@ -175,15 +175,8 @@ if [[ -n $INSTALL ]]; then
     fi
 
     # Get shortcut path
-    prefix=$root_prefix/envs/spyder-runtime
-    menu=$prefix/Menu/spyder-menu.json
     [[ -e "$prefix/.nonadmin" ]] && mode=user || mode=system
-    shortcut=$($root_prefix/bin/python - <<EOF
-from menuinst.api import _load
-menu, menu_items = _load("$menu", target_prefix="$prefix", base_prefix="$root_prefix", _mode="$mode")
-print(menu_items[0]._paths()[0])
-EOF
-    )
+    shortcut=$($root_prefix/bin/python $root_prefix/bin/menuinst_cli.py shortcut --mode=$mode)
 
     # Show install results
     log "Install info:"
