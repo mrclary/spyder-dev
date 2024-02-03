@@ -1,0 +1,12 @@
+# ----
+# $(brew --prefix tcl-tk)/include
+Traceback (most recent call last):
+  File "/Users/ryan/Documents/Repos/spyder-dev/issue-20232/issue_20232.py", line 5, in <module>
+    fenster = tk.Tk()            # Methode Fenstererstellung
+  File "/Users/ryan/.pyenv/versions/3.10.13/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/tkinter/__init__.py", line 2301, in __init__
+    self._loadtk()
+  File "/Users/ryan/.pyenv/versions/3.10.13/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/tkinter/__init__.py", line 2317, in _loadtk
+    raise RuntimeError("tk.h version (%s) doesn't match libtk.a version (%s)"
+RuntimeError: tk.h version (8.5) doesn't match libtk.a version (8.6)
+
+# ----
