@@ -33,6 +33,7 @@ if [[ -n $sign || -n $notarize ]]; then
     CERT=$(op read "op://Personal/Apple Developer Program/Developer ID Application Certificate")
     CERTPASS=$(op read "op://Personal/Apple Developer Program/Certificate Password")
     APPPASS=$(op read "op://Personal/Apple Developer Program/Application Password")
+    DMGNAME=$(python setup.py ${build_opts[@]} --dmg-name)
 #     trap "security list-keychain -s login.keychain; rm -rf certificate.p12" EXIT
 #     ./certkeychain.sh $CERT $CERTPASS
 fi
@@ -56,11 +57,11 @@ if [[ -n $sign && -d dist/Spyder.app ]]; then
 fi
 
 if [[ -n $dmg ]]; then
-    python setup.py --no-app --dmg --dist-dir dist
+    python setup.py ${build_opts[@]} --no-app --dmg --dist-dir dist
 fi
-if [[ -n $sign && -f dist/Spyder.dmg ]]; then
-    ./codesign.sh ${sign_opts[@]} dist/Spyder.dmg
+if [[ -n $sign && -f "dist/$DMGNAME" ]]; then
+    ./codesign.sh ${sign_opts[@]} dist/$DMGNAME
 fi
-if [[ -n $notarize && -f dist/Spyder.dmg ]]; then
-    ./~notarize.sh -p $APPPASS dist/Spyder.dmg
+if [[ -n $notarize && -f "dist/$DMGNAME" ]]; then
+    ./~notarize.sh -p $APPPASS dist/$DMGNAME
 fi
