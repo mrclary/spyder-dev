@@ -117,11 +117,11 @@ if [[ "$TYPE" = "mac-build" ]]; then
 
     if [[ -z "$(pyenv versions | grep $PYVER)" ]]; then
         log "Installing Python $PYVER..."
-        TKPREFIX=$(brew --prefix tcl-tk)
         PCO=()
         # PCO+=("--enable-universalsdk" "--with-universal-archs=universal2")
-        PCO+=("--enable-framework" "--with-tcltk-includes=-I$TKPREFIX/include")
-        PCO+=("--with-tcltk-libs='-L$TKPREFIX/lib -ltcl8.6 -ltk8.6'")
+        PCO+=("--enable-framework")
+        PCO+=("--with-tcltk-includes='$(pkg-config tk tcl --cflags)'")
+        PCO+=("--with-tcltk-libs='$(pkg-config tk tcl --libs)'")
         export PYTHON_CONFIGURE_OPTS="${PCO[@]}"
         pyenv install $PYVER
     else
