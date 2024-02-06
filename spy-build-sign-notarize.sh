@@ -2,7 +2,7 @@
 set -e
 
 SPYROOT=$(dirname $(dirname ${BASH_SOURCE:-${(%):-%x}}))
-
+SITEPKGS=$(python -c "import site; print(site.getsitepackages()[0])")
 build_opts=()
 sign_opts=()
 
@@ -38,8 +38,16 @@ if [[ -n $sign || -n $notarize ]]; then
 fi
 
 if [[ -n $build ]]; then
+    # Patch Black
+    black=$SITEPKGS/black-24.1.1.dist-info/top_level.txt
+    [[ ! -e "$black" ]] && touch $black
+
     python setup.py ${build_opts[@]} --dist-dir dist
+
+    # Patch Black
+    cp -v $SITEPKGS/629853fdff261ed89b74__mypyc* dist/Spyder.app/Contents/Resources/lib/python*/
 fi
+
 if [[ -n $sign && -d dist/Spyder.app ]]; then
     pil=$(python -c "import PIL, os; print(os.path.dirname(PIL.__file__))")
     rm -v dist/Spyder.app/Contents/Frameworks/liblzma.5.dylib
