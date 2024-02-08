@@ -44,7 +44,10 @@ if "%name%"=="" (
 )
 
 @echo on
+call mamba env remove -n %name%
+rmdir /S /Q %HOMEPATH%\.conda\envs\%name%
 set CONDA_CHANNEL_PRIORITY=flexible
+
 call mamba create -y -n %name% python=%pyver% || goto error
 
 IF "%type%"=="dev" (
