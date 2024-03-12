@@ -1,51 +1,54 @@
-:: This script installs or uninstalls the Spyder shortcut
 @echo off
-SETLOCAL
+rem  SETLOCAL
 
-:: default uninstall then install
+rem  default uninstall then install
 set UNINSTALL=true
 set INSTALL=true
-set VER=6
+set bp=%localappdata%\spyder-6
+set tp=%bp%\envs\spyder-runtime
 
-:: Create variables from arguments
+rem  Create variables from arguments
 :parse
-IF "%~1"=="" goto endparse
-IF "%~1"=="-h" (
-     call :help
-     goto exit
-)
-IF "%~1"=="-u" (
-    set UNINSTALL=true
-    set INSTALL=false
-    SHIFT
-)
-IF "%~1"=="-i" (
-    set INSTALL=true
-    set UNINSTALL=false
-    SHIFT
-)
-if "%~1"=="-v" set VER=%~2& shift
-SHIFT
+if "%~1"=="" goto endparse
+if "%~1"=="-h" goto :help
+if "%~1"=="-u" set UNINSTALL=true& set INSTALL=false& shift
+if "%~1"=="-i" set INSTALL=true& set UNINSTALL=false& shift
+if "%~1"=="-b" set bp=%localappdata%\%~2& shift& shift
+if "%~1"=="-t" set tp=%userprofile%\.conda\envs\%~2& shift& shift
 goto parse
 :endparse
 
-:: Enforce encoding
-chcp 65001>nul
-
-set base_prefix=%localappdata%\spyder-%VER%
-set target_prefix=%base_prefix%\envs\spyder-runtime
-set menu=%target_prefix%\Menu\spyder-menu.json
+set menu=%tp%\Menu\spyder-menu.json
 
 if "%UNINSTALL%"=="true" (
-    %base_prefix%\python -c "from menuinst.api import remove; remove(r'%menu%', target_prefix=r'%target_prefix%', base_prefix=r'%base_prefix%')"
+    %bp%\python -c "from menuinst.api import remove; remove(r'%menu%', target_prefix=r'%tp%', base_prefix=r'%bp%')"
 )
 
 if "%INSTALL%"=="true" (
-    %base_prefix%\python -c "from menuinst.api import install; install(r'%menu%', target_prefix=r'%target_prefix%', base_prefix=r'%base_prefix%')"
+    %bp%\python -c "from menuinst.api import install; install(r'%menu%', target_prefix=r'%tp%', base_prefix=r'%bp%')"
 )
 
 :exit
-exit /B %ERRORLEVEL%
+    exit /b %errorlevel%
 
 :help
-    goto :EOF
+    @echo %~nx0 [options]
+    @echo.
+    @echo Install or uninstall Spyder shortcut. If -u and -i are not provided, then
+    @echo the shortcut is first uninstalled and then reinstalled.
+    @echo.
+    @echo Options:
+    @echo   -h         Display this help
+    @echo.
+    @echo   -u         Uninstall the shortcut
+    @echo.
+    @echo   -i         Install the shortcut
+    @echo.
+    @echo   -b BASE    Base environment name, located in %localappdata%.
+    @echo              If not provided, %bp% is used
+    @echo              for the base prefix.
+    @echo.
+    @echo   -t TARGET  Target environment name, located in %userprofile%\.conda\envs.
+    @echo              If not provided, %tp%
+    @echo              is used for the target prefix.
+    goto :exit

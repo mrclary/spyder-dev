@@ -59,6 +59,7 @@ IF "%type%"=="dev" (
 )
 IF "%type%"=="conda-build" (
     call mamba env update -n %name% -f %spy_root%\installers-conda\build-environment.yml || goto error
+    call mamba update -n %name% nsis=3.08=*_log_* || goto error
 )
 @echo off
 
