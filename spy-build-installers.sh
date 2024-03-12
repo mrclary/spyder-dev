@@ -107,9 +107,9 @@ mkdir -p $SPYTMPDIR
 # ---- Build conda packages
 if [[ -n $BUILDCONDA ]]; then
     log "Removing cached Spyder conda package..."
-    [[ "$OSTYPE" == "darwin"* ]] && rm $HOME/.conda/conda-bld/osx-64/spyder-6*
-    [[ "$OSTYPE" == "linux"* ]] && rm $HOME/.conda/conda-bld/linux-64/spyder-6*
-    rm $HOME/.conda/conda-bld/channeldata.json
+    [[ "$OSTYPE" == "darwin"* ]] && rm -rf $HOME/.conda/conda-bld/osx-64/spyder-6*
+    [[ "$OSTYPE" == "linux"* ]] && rm -rf $HOME/.conda/conda-bld/linux-64/spyder-6*
+    rm -f $HOME/.conda/conda-bld/channeldata.json
 
     log "Building conda packages..."
     python $src_inst_dir/build_conda_pkgs.py ${build_conda_opts[@]}
