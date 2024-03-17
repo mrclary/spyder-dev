@@ -26,13 +26,14 @@ while getopts "hu" option; do
     esac
 done
 shift $(($OPTIND - 1))
+unset -f help
 
 if [[ -z $unset_var ]]; then
     echo Setting Spyder environment variables and aliases...
     export SPYDEV=$(dirname $SOURCE)
-    ROOT=$(dirname $SPYDEV)
+    local ROOT=$(dirname $SPYDEV)
     export SPYREPO=$ROOT/spyder
-    EXTDEPS=$SPYREPO/external-deps
+    local EXTDEPS=$SPYREPO/external-deps
     alias spy-build-installers="$SPYDEV/spy-build-installers.sh"
     alias spy-clone-subrepo="$SPYDEV/spy-clone-subrepo.sh"
     alias spy-env="$SPYDEV/spy-env.sh"
@@ -42,18 +43,10 @@ if [[ -z $unset_var ]]; then
     if [[ $OSTYPE == "darwin"* ]]; then
         alias spy-app-spyder="$HOME/Applications/Spyder.app/Contents/MacOS/spyder"
     fi
-
 else
     echo Removing Spyder environment variables and aliases...
-    local raw_v=($(/usr/bin/env -i bash -c "source $SOURCE ; compgen -v"))
-    local raw_a=($(/usr/bin/env -i bash -c "source $SOURCE ; compgen -a"))
-    local new_v=($(/usr/bin/env -i bash -c "source $SOURCE ; $funcname &>/dev/null; compgen -v"))
-    local new_a=($(/usr/bin/env -i bash -c "source $SOURCE ; $funcname &>/dev/null; compgen -a"))
-    local to_rem_v=($(echo ${raw_v[@]} ${new_v[@]} | tr ' ' '\n' | sort | uniq -u))
-    local to_rem_a=($(echo ${raw_a[@]} ${new_a[@]} | tr ' ' '\n' | sort | uniq -u))
-
-    unalias ${to_rem_a[@]}
-    unset -v ${to_rem_v[@]}
+    unalias spy-build-installers spy-clone-subrepo spy-env spy-menuinst spy-update-conda-app
+    unalias spy-dev-spyder spy-app-spyder 2>/dev/null
+    unset -v SPYDEV SPYREPO
 fi
-unset -f help
 }
