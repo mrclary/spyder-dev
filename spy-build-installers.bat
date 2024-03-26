@@ -31,7 +31,7 @@ goto parse
 @echo Install: %INSTALL%
 @echo.
 
-set conda_bld_dir=%USERPROFILE%\.conda\conda-bld
+set CONDA_BLD_PATH=%USERPROFILE%\.conda\conda-bld
 
 rem  Build conda packages
 if "%BUILDCONDA%"=="true" call :build_conda_pkgs || goto exit
@@ -74,15 +74,15 @@ if "%INSTALL%"=="true" (
 
 :build_conda_pkgs
     @echo Removing existing conda packages...
-    del /s /q "%conda_bld_dir%\win-64\spyder-6*"
-    del /s /q "%conda_bld_dir%\channeldata.json"
+    del /s /q "%CONDA_BLD_PATH%\win-64\spyder-6*"
+    del /s /q "%CONDA_BLD_PATH%\channeldata.json"
 
     @echo Building conda packages...
     python "%src_inst_dir%\build_conda_pkgs.py" %BUILDOPTS%
 
-    for /d %%i in ("%conda_bld_dir%\spyder*") do rmdir /s /q %%i
-    for /d %%i in ("%conda_bld_dir%\qtconsole*") do rmdir /s /q %%i
-    for /d %%i in ("%conda_bld_dir%\python-lsp*") do rmdir /s /q %%i
+    for /d %%i in ("%CONDA_BLD_PATH%\spyder*") do rmdir /s /q %%i
+    for /d %%i in ("%CONDA_BLD_PATH%\qtconsole*") do rmdir /s /q %%i
+    for /d %%i in ("%CONDA_BLD_PATH%\python-lsp*") do rmdir /s /q %%i
 
     goto :eof
 
