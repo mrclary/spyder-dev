@@ -5,7 +5,7 @@ set script_path=%~f0
 set here=%~dp0
 for %%a in (%~dp0\..) do set src_inst_dir=%%~fa\spyder\installers-conda
 
-where constructor.exe >NUL 2>null
+where constructor.exe >NUL 2>nul
 if "%errorlevel%" neq "0" (
     @echo Activate a conda environment with constructor installed to use %~nx0
     goto exit
