@@ -160,7 +160,7 @@ else
     CONDA_CHANNEL_PRIORITY=flexible
     cmd=$(which mamba)
 
-    create_opts=("-n" "$NAME" "-c" "conda-forge" "--override" "${create_opts[@]}")
+    create_opts=("-n" "$NAME" "-c" "conda-forge" "--override-channels" "${create_opts[@]}")
     $cmd create ${create_opts[@]} python=$PYVER_INIT
     update_opts=("env" "update" "-n" "$NAME" "${update_opts[@]}")
 

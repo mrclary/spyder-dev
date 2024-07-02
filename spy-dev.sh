@@ -41,7 +41,7 @@ if [[ -z $unset_var ]]; then
     alias spy-update-conda-app="$SPYDEV/spy-update-conda-app.sh"
     alias spy-dev-spyder="mamba run --live-stream -n spy-dev python $SPYREPO/bootstrap.py"
     if [[ $OSTYPE == "darwin"* ]]; then
-        alias spy-app-spyder="$HOME/Applications/Spyder.app/Contents/MacOS/spyder"
+        alias spy-app-spyder="$HOME/Applications/Spyder 6.app/Contents/MacOS/spyder-6"
     fi
 else
     echo Removing Spyder environment variables and aliases...
