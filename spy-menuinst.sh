@@ -3,8 +3,12 @@ set -e
 
 # Default is conda-based install location
 bp=$HOME/.local/spyder-6
+_bp=$HOME/miniforge3  # secondary default
+if [[ "$OSTYPE" = "darwin"* ]]; then
+    bp=$HOME/Library/spyder-6
+    _bp=/usr/local/Caskroom/miniforge/base
+fi
 tp=$bp/envs/spyder-runtime
-[[ "$OSTYPE" == "darwin"* ]] && _bp=/usr/local/Caskroom/miniforge/base || _bp=$HOME/miniforge3
 
 help() { cat <<EOF
 
