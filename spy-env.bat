@@ -43,7 +43,7 @@ if "%name%"=="" (
     if "%type%"=="conda-build" set name=spy-inst
 )
 
-@echo on
+
 call mamba env remove -n %name%
 rmdir /S /Q %HOMEPATH%\.conda\envs\%name%
 set CONDA_CHANNEL_PRIORITY=flexible
@@ -59,9 +59,8 @@ IF "%type%"=="dev" (
 )
 IF "%type%"=="conda-build" (
     call mamba env update -n %name% -f %spy_root%\installers-conda\build-environment.yml || goto error
-    call mamba update -n %name% nsis=3.08=*_log_* || goto error
+    call mamba install -n %name% nsis=3.08=*_log_* || goto error
 )
-@echo off
 
 :error
 goto exit
