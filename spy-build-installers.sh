@@ -149,7 +149,7 @@ if [[ -n $BUILDPKG ]]; then
     [[ "$OSTYPE" == "linux"* ]] && rm -rf $HOME/.conda/constructor/linux-64/spyder-6*
 
     log "Building installer..."
-    python $src_inst_dir/build_installers.py ${build_pkg_opts[@]}
+    CONDA_SHORTCUTS=false python $src_inst_dir/build_installers.py ${build_pkg_opts[@]}
 else
     log "Not building installer"
 fi

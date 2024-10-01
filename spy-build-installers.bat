@@ -102,7 +102,9 @@ if "%INSTALL%"=="true" (
 
     @echo Building installer...
     set NSIS_USING_LOG_BUILD=1
+    set CONDA_SHORTCUTS=false
     python "%src_inst_dir%\build_installers.py"
+    set CONDA_SHORTCUTS=
     if not exist "%pkg_name%" (
         @echo Installer "%pkg_name%" not created
         exit /b 1
