@@ -2,7 +2,7 @@
 @echo off
 SETLOCAL
 set type=dev
-set pyver=3.10
+set pyver=3.11
 
 :: Create variables from arguments
 :parse

@@ -6,7 +6,7 @@ SPYREPO=$SPYROOT/spyder
 
 TYPE="dev"
 MAN=mambaforge
-PYVER_INIT=3.10
+PYVER_INIT=3.11
 
 help() { cat <<EOF
 
