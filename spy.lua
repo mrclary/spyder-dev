@@ -7,7 +7,7 @@ whatis("Keywords: Spyder, Utility")
 whatis("Description: Spyder specific environment variables")
 
 family("context")
-depends_on_any("conda", "pyenv")
+depends_on_any("miniforge", "miniconda", "anaconda", "micromamba", "pyenv")
 
 -- Directory of this script
 spydev = myFileName():sub(1, myFileName():find(myModuleFullName()..".lua", 1, true)-2)
