@@ -109,8 +109,8 @@ export CONDA_BLD_PATH=$HOME/.conda/conda-bld
 # ---- Build conda packages
 if [[ -n $BUILDCONDA ]]; then
     log "Removing cached Spyder conda package..."
-    [[ "$OSTYPE" == "darwin"* ]] && rm -rf $CONDA_BLD_PATH/osx-64/spyder-6*
-    [[ "$OSTYPE" == "linux"* ]] && rm -rf $CONDA_BLD_PATH/linux-64/spyder-6*
+    rm -rf $CONDA_BLD_PATH/noarch/spyder-base-6*
+    rm -rf $CONDA_BLD_PATH/noarch/spyder-6*
     rm -f $CONDA_BLD_PATH/channeldata.json
 
     log "Building conda packages..."

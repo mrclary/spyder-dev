@@ -74,7 +74,8 @@ if "%INSTALL%"=="true" (
 
 :build_conda_pkgs
     @echo Removing existing conda packages...
-    del /s /q "%CONDA_BLD_PATH%\win-64\spyder-6*"
+    del /s /q "%CONDA_BLD_PATH%\win-64\spyder-base-6*"
+    del /s /q "%CONDA_BLD_PATH%\noarch\spyder-6*"
     del /s /q "%CONDA_BLD_PATH%\channeldata.json"
 
     @echo Building conda packages...
