@@ -138,8 +138,7 @@ if [[ (-n $BUILDPKG || -n $NOTARIZE) && $OSTYPE = "darwin"* ]]; then
     trap "$src_inst_dir/certkeychain.sh -c" EXIT
     echo $AUTHCERT | base64 --decode > $SPYTMPDIR/certificate.cer
     $src_inst_dir/certkeychain.sh $CERTPASS $APPCERT $INSTCERT $SPYTMPDIR/certificate.cer
-    CNAME=$(security find-identity -p codesigning -v | pcre2grep -o1 "\(([0-9A-Z]+)\)")
-    [[ -n "$CNAME" ]] && build_pkg_opts+=("--cert-id=$CNAME")
+    CERT_ID=$(security find-identity -p codesigning -v | pcre2grep -o1 "\(([0-9A-Z]+)\)")
 fi
 
 # ---- Build installer pkg
@@ -154,7 +153,7 @@ else
     log "Not building installer"
 fi
 
-pkg_name="$(python $src_inst_dir/build_installers.py --artifact-name ${build_pkg_opts[@]})"
+pkg_name="$(python $src_inst_dir/build_installers.py --installer-path ${build_pkg_opts[@]})"
 
 if [[ -n $INSTALL ]]; then
     [[ $OSTYPE = "darwin"* ]] && root_prefix=$HOME/Library/spyder-* || root_prefix=$HOME/.local/spyder-*
