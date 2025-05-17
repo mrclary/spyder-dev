@@ -21,8 +21,9 @@ set_alias("spy-clone-subrepo", pathJoin(spydev, "spy-clone-subrepo.sh"))
 set_alias("spy-env", pathJoin(spydev, "spy-env.sh"))
 set_alias("spy-menuinst", pathJoin(spydev, "spy-menuinst.sh"))
 set_alias("spy-update-conda-app", pathJoin(spydev, "spy-update-conda-app.sh"))
-set_alias("spy-dev-spyder", "conda run --live-stream -n spy-dev python "..pathJoin(spyrepo, "bootstrap.py"))
+set_alias("spy-run-dev", "conda run --live-stream -n spy-dev spyder")
 
 if io.popen("echo $OSTYPE"):read():find("darwin") then
-  set_alias("spy-app-spyder", pathJoin(os.getenv("HOME"), "/Applications/Spyder\\ 6.app/Contents/MacOS/spyder-6"))
+  set_alias("spy-run-app-term", pathJoin(os.getenv("HOME"), "/Applications/Spyder\\ 6.app/Contents/MacOS/spyder-6"))
+  set_alias("spy-run-app", "open -a " ..pathJoin(os.getenv("HOME"), "/Applications/Spyder\\ 6.app") .." --args")
 end
