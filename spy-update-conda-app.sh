@@ -11,4 +11,4 @@ else
 fi
 PREFIX=${ROOT_PREFIX}/envs/spyder-runtime
 
-mamba run --live-stream -p $PREFIX python $SPYREPO/install_dev_repos.py "$@"
+conda run --live-stream -p $PREFIX python $SPYREPO/install_dev_repos.py "$@"

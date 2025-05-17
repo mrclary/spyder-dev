@@ -158,7 +158,7 @@ else
     log "Creating conda '$NAME' $TYPE environment..."
 
     CONDA_CHANNEL_PRIORITY=flexible
-    cmd=$(which mamba)
+    cmd=$(which conda)
 
     create_opts=("-n" "$NAME" "-c" "conda-forge" "--override-channels" "${create_opts[@]}")
     $cmd create ${create_opts[@]} python=$PYVER_INIT
