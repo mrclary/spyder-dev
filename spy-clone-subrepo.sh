@@ -67,35 +67,29 @@ extra_opts+=($@)
 
 case $REPO in
     (python-lsp-server)
-        upstream=https://github.com/python-lsp/python-lsp-server.git
-        fork=https://github.com/mrclary/python-lsp-server.git
         local=$ROOT/python-lsp-server
         : ${branch:=develop}
         ;;
     (qtconsole)
-        upstream=https://github.com/jupyter/qtconsole.git
-        fork=https://github.com/mrclary/qtconsole.git
         local=$ROOT/qtconsole
-        : ${branch:=master}
+        : ${branch:=main}
         ;;
     (spyder-kernels)
-        upstream=https://github.com/spyder-ide/spyder-kernels.git
-        fork=https://github.com/mrclary/spyder-kernels.git
         local=$SPYROOT/spyder-kernels
-        : ${branch:=2.x}
+        : ${branch:=master}
         ;;
+    (spyder-remote-services)
+        local=$SPYROOT/spyder-remote-services
+        : ${branch:=main}
 esac
 
-if [[ -z ${!remote} ]]; then
-    log "Unknown remote option: \"${remote}\". Using $upstream"
-    remote=upstream
-fi
+url=$(git -C $local remote get-url $remote) || exit $?
 
 args=("external-deps/$REPO")
-opts=("-b" "$branch")
-# "-f")
-[[ $subcmd = "pull" ]] && opts+=("-r" "${!remote}" "-u")
-[[ $subcmd = "clone" ]] && args=("${!remote}" "${args[@]}")
+opts=("-b" "$branch" "--force")
+
+[[ $subcmd = "pull" ]] && opts+=("-r" "${url}" "-u")
+[[ $subcmd = "clone" ]] && args=("${url}" "${args[@]}")
 cmd=("git" "-C" "$SPYREPO" "subrepo" "$subcmd" "${args[@]}" "${opts[@]}" "${extra_opts[@]}")
 log "command: ${cmd[@]}"
 ${cmd[@]}
